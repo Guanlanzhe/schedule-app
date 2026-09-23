@@ -14,10 +14,18 @@ all_tags = fetch_tags(user.id)
 all_cats = fetch_categories(user.id)
 
 if not all_cats:
-    st.warning("还没有类别，请先去「5_标签管理」创建一个类别")
+    st.warning("还没有类别，请先去「5_设置」创建一个类别")
     st.stop()
 
-with st.form("new_schedule"):
+# 成功提示：放在表单外面，rerun 后仍然显示
+if st.session_state.pop("just_created", False):
+    st.success("✅ 已创建")
+
+# 表单 key 随计数器变化，提交后计数器 +1 → 表单重置
+if "form_key" not in st.session_state:
+    st.session_state["form_key"] = 0
+
+with st.form(f"new_schedule_{st.session_state['form_key']}"):
     category = st.selectbox("类别", [c["name"] for c in all_cats])
     note = st.text_input("备注（可选）")
     deadline = st.date_input("截止日期", value=date.today())
@@ -45,7 +53,7 @@ with st.form("new_schedule"):
                     t["name"] for t in items if t["id"] == tid
                 ),
                 label_visibility="collapsed",
-                key=f"tag_sel_{group_name}",
+                key=f"tag_sel_{group_name}_{st.session_state['form_key']}",
             )
             selected_tag_ids.extend(chosen)
 
@@ -64,5 +72,8 @@ if submitted:
             "end_time": datetime.combine(deadline, end_t).isoformat(),
         }
         insert(user.id, data, tag_ids=selected_tag_ids)
-        st.success("创建成功！")
+
+        # 标记成功 + 递增 key → 表单重置
+        st.session_state["just_created"] = True
+        st.session_state["form_key"] += 1
         st.rerun()
