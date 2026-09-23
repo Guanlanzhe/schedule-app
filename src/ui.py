@@ -11,7 +11,8 @@ def load_style():
 
 
 def require_login():
-    """页面门卫：没登录就停住，返回当前用户"""
+    from src.supabase_client import restore_session
+    restore_session()
     if "user" not in st.session_state:
         st.warning("请先登录")
         st.stop()
@@ -19,6 +20,14 @@ def require_login():
 
 
 def show_login_form():
+    from src.supabase_client import restore_session
+
+    # 先尝试从 Cookie 恢复登录态
+    restore_session()
+    # 恢复成功后立即 rerun，让主页重新判断
+    if "user" in st.session_state:
+        st.rerun()
+
     st.title("📅 临床医学生日程管理")
 
     tab1, tab2 = st.tabs(["登录", "注册"])
