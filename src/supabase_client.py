@@ -11,12 +11,11 @@ def get_supabase():
     )
 
 
-def register(username: str, password: str):
-    """注册：用伪邮箱绕过邮箱验证"""
-    email = f"{username}@schedule.local"
+def register(email: str, password: str):
+    """注册：直接使用邮箱"""
     try:
         resp = get_supabase().auth.sign_up({
-            "email": email,
+            "email": email.strip(),  # strip() 去掉可能的首尾空格
             "password": password
         })
         return resp.user
@@ -25,15 +24,13 @@ def register(username: str, password: str):
         return None
 
 
-def login(username: str, password: str):
-    """登录：同样用伪邮箱"""
-    email = f"{username}@schedule.local"
+def login(email: str, password: str):
+    """登录：直接使用邮箱"""
     try:
         resp = get_supabase().auth.sign_in_with_password({
-            "email": email,
+            "email": email.strip(),
             "password": password
         })
-        # 把登录态存到 session_state
         st.session_state["user"] = resp.user
         st.session_state["access_token"] = resp.session.access_token
         return resp.user
