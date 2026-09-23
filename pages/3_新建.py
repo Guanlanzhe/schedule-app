@@ -1,39 +1,65 @@
-from datetime import datetime
+from datetime import datetime, date, time
 import streamlit as st
 from src.ui import load_style, require_login
 from src.schedule.db import insert
+from src.schedule.tags import fetch_tags
 
 load_style()
 user = require_login()
 
 st.title("➕ 新建日程")
 
+all_tags = fetch_tags(user.id)
+
 with st.form("new_schedule"):
     category = st.selectbox("类别", ["作业", "考试", "汇报", "其它"])
     note = st.text_input("备注（可选）")
-    deadline = st.date_input("截止日期")
+    deadline = st.date_input("截止日期", value=date.today())
 
     col1, col2 = st.columns(2)
     with col1:
-        start_t = st.time_input("开始时间（可选）", value=None)
+        start_t = st.time_input("开始时间（可选）", value=time(11, 0))
     with col2:
-        end_t = st.time_input("结束时间（可选）", value=None)
+        end_t = st.time_input("结束时间（可选）", value=time(13, 0))
 
-    prep_start = st.date_input("开始准备日期（可选）", value=None)
+    prep_start = st.date_input("开始准备日期（可选）", value=date.today())
+
+    # 标签多选，按分类分组展示
+    selected_tag_ids = []
+    if all_tags:
+        st.write("**标签（可多选）**")
+        groups = {}
+        for t in all_tags:
+            groups.setdefault(t["group_name"], []).append(t)
+        for group_name, items in groups.items():
+            st.caption(group_name)
+            chosen = st.multiselect(
+                label=f"选择{group_name}标签",
+                options=[t["id"] for t in items],
+                format_func=lambda tid: next(
+                    t["name"] for t in items if t["id"] == tid
+                ),
+                label_visibility="collapsed",
+                key=f"tag_sel_{group_name}",
+            )
+            selected_tag_ids.extend(chosen)
+    else:
+        st.caption("还没有标签，可去「5_标签管理」创建")
 
     submitted = st.form_submit_button("创建")
 
 if submitted:
-    data = {
-        "category": category,
-        "note": note,
-        "deadline_date": str(deadline),
-        "prep_start": str(prep_start) if prep_start else None,
-    }
-    if start_t and end_t:
-        data["start_time"] = datetime.combine(deadline, start_t).isoformat()
-        data["end_time"] = datetime.combine(deadline, end_t).isoformat()
-
-    insert(user.id, data)
-    st.success("创建成功！")
-    st.rerun()
+    if end_t <= start_t:
+        st.error("结束时间必须晚于开始时间")
+    else:
+        data = {
+            "category": category,
+            "note": note,
+            "deadline_date": str(deadline),
+            "prep_start": str(prep_start) if prep_start else None,
+            "start_time": datetime.combine(deadline, start_t).isoformat(),
+            "end_time": datetime.combine(deadline, end_t).isoformat(),
+        }
+        insert(user.id, data, tag_ids=selected_tag_ids)
+        st.success("创建成功！")
+        st.rerun()
