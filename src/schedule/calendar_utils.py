@@ -1,9 +1,5 @@
-CATEGORY_COLORS = {
-    "作业": "#4A90D9",   # 蓝色
-    "考试": "#D94A4A",   # 红色
-    "汇报": "#50B86C",   # 绿色
-    "其它": "#B8B8B8",   # 灰色
-}
+# 所有日程统一颜色，不再按类别区分
+UNIFIED_COLOR = "#4A90D9"
 
 
 def darken(hex_color: str, factor: float = 0.75) -> str:
@@ -15,19 +11,32 @@ def darken(hex_color: str, factor: float = 0.75) -> str:
 
 
 def to_events(schedules: list) -> list:
-    """把数据库记录转成 FullCalendar 需要的事件列表"""
+    """把数据库记录转成 FullCalendar 事件列表。
+    颜色统一，标签名以文字形式拼在标题前面。
+    """
     events = []
     for s in schedules:
         if s["status"] == "completed":
-            continue  # 已完成的不显示在日历上
+            continue
 
-        color = CATEGORY_COLORS.get(s["category"], "#999")
+        color = UNIFIED_COLOR
         if s["status"] == "overdue":
             color = darken(color)
 
+        # 标题：类别 + 备注 + 标签
+        parts = [s["category"]]
+        if s["note"]:
+            parts.append(s["note"])
+        title = " ".join(parts)
+
+        # 标签拼在标题前，用 [xxx] 形式
+        tag_names = s.get("tag_names") or []
+        if tag_names:
+            title = "[" + "/".join(tag_names) + "] " + title
+
         event = {
             "id": str(s["id"]),
-            "title": f"[{s['category']}] {s['note'] or ''}".strip(),
+            "title": title,
             "start": s["start_time"] or s["deadline_date"],
             "color": color,
         }
