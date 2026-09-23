@@ -3,6 +3,7 @@ import streamlit as st
 from src.ui import load_style, require_login
 from src.schedule.db import insert
 from src.schedule.tags import fetch_tags
+from src.schedule.categories import fetch_categories
 
 load_style()
 user = require_login()
@@ -10,9 +11,14 @@ user = require_login()
 st.title("➕ 新建日程")
 
 all_tags = fetch_tags(user.id)
+all_cats = fetch_categories(user.id)
+
+if not all_cats:
+    st.warning("还没有类别，请先去「5_标签管理」创建一个类别")
+    st.stop()
 
 with st.form("new_schedule"):
-    category = st.selectbox("类别", ["作业", "考试", "汇报", "其它"])
+    category = st.selectbox("类别", [c["name"] for c in all_cats])
     note = st.text_input("备注（可选）")
     deadline = st.date_input("截止日期", value=date.today())
 
@@ -24,7 +30,6 @@ with st.form("new_schedule"):
 
     prep_start = st.date_input("开始准备日期（可选）", value=date.today())
 
-    # 标签多选，按分类分组展示
     selected_tag_ids = []
     if all_tags:
         st.write("**标签（可多选）**")
@@ -43,8 +48,6 @@ with st.form("new_schedule"):
                 key=f"tag_sel_{group_name}",
             )
             selected_tag_ids.extend(chosen)
-    else:
-        st.caption("还没有标签，可去「5_标签管理」创建")
 
     submitted = st.form_submit_button("创建")
 
