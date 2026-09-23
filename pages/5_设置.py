@@ -10,15 +10,36 @@ user = require_login()
 
 st.title("🏷️ 标签与类别管理")
 
+# 成功提示
+if st.session_state.pop("just_created_cat", False):
+    st.success("✅ 已添加类别")
+if st.session_state.pop("just_created_tag", False):
+    st.success("✅ 已添加标签")
+
+# 初始化两个计数器
+if "cat_form_key" not in st.session_state:
+    st.session_state["cat_form_key"] = 0
+if "tag_form_key" not in st.session_state:
+    st.session_state["tag_form_key"] = 0
+
 # ========== 类别管理 ==========
 st.subheader("类别")
-with st.form("new_cat"):
+with st.form(f"new_cat_{st.session_state['cat_form_key']}"):
     c1, c2 = st.columns([3, 1])
-    cat_name = c1.text_input("新类别名", placeholder="如：作业、考试、汇报")
-    if c2.form_submit_button("添加类别"):
-        if cat_name.strip():
-            create_category(user.id, cat_name.strip())
-            st.rerun()
+    cat_name = c1.text_input(
+        "新类别名", placeholder="如：作业、考试、汇报",
+        key=f"cat_input_{st.session_state['cat_form_key']}"
+    )
+    cat_submitted = c2.form_submit_button("添加类别")
+
+if cat_submitted:
+    if cat_name.strip():
+        create_category(user.id, cat_name.strip())
+        st.session_state["just_created_cat"] = True
+        st.session_state["cat_form_key"] += 1
+        st.rerun()
+    else:
+        st.warning("类别名不能为空")
 
 cats = fetch_categories(user.id)
 if cats:
@@ -36,16 +57,26 @@ st.divider()
 
 # ========== 标签管理 ==========
 st.subheader("标签")
-with st.form("new_tag"):
+with st.form(f"new_tag_{st.session_state['tag_form_key']}"):
     c1, c2 = st.columns(2)
-    group_name = c1.text_input("标签分类", placeholder="如：学科类、作业分类")
-    name = c2.text_input("标签名", placeholder="如：解剖、绘图作业")
-    if st.form_submit_button("添加标签"):
-        if group_name and name:
-            create_tag(user.id, name.strip(), group_name.strip())
-            st.rerun()
-        else:
-            st.warning("分类和标签名都要填")
+    group_name = c1.text_input(
+        "标签分类", placeholder="如：学科类、作业分类",
+        key=f"tag_group_{st.session_state['tag_form_key']}"
+    )
+    name = c2.text_input(
+        "标签名", placeholder="如：解剖、绘图作业",
+        key=f"tag_name_{st.session_state['tag_form_key']}"
+    )
+    tag_submitted = st.form_submit_button("添加标签")
+
+if tag_submitted:
+    if group_name and name:
+        create_tag(user.id, name.strip(), group_name.strip())
+        st.session_state["just_created_tag"] = True
+        st.session_state["tag_form_key"] += 1
+        st.rerun()
+    else:
+        st.warning("分类和标签名都要填")
 
 tags = fetch_tags(user.id)
 if not tags:
