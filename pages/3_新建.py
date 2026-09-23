@@ -17,27 +17,45 @@ if not all_cats:
     st.warning("还没有类别，请先去「5_设置」创建一个类别")
     st.stop()
 
-# 成功提示：放在表单外面，rerun 后仍然显示
+# 成功提示
 if st.session_state.pop("just_created", False):
     st.success("✅ 已创建")
 
-# 表单 key 随计数器变化，提交后计数器 +1 → 表单重置
+# 初始化表单计数器
 if "form_key" not in st.session_state:
     st.session_state["form_key"] = 0
 
-with st.form(f"new_schedule_{st.session_state['form_key']}"):
+fk = st.session_state["form_key"]
+
+# ===== 类型选择放在表单外，切换时不会丢失其他字段（因为其他字段在表单内，key 稳定）=====
+schedule_type = st.radio(
+    "日程类型",
+    ["ddl型", "阶段型"],
+    horizontal=True,
+    key=f"type_{fk}",
+    help="ddl型：只有截止日期；阶段型：有开始和结束时间"
+)
+
+# ===== 表单 =====
+with st.form(f"new_schedule_{fk}"):
     category = st.selectbox("类别", [c["name"] for c in all_cats])
     note = st.text_input("备注（可选）")
     deadline = st.date_input("截止日期", value=date.today())
 
-    col1, col2 = st.columns(2)
-    with col1:
-        start_t = st.time_input("开始时间（可选）", value=time(11, 0))
-    with col2:
-        end_t = st.time_input("结束时间（可选）", value=time(13, 0))
+    # 只有阶段型才显示时间范围
+    if schedule_type == "阶段型":
+        col1, col2 = st.columns(2)
+        with col1:
+            start_t = st.time_input("开始时间", value=time(11, 0))
+        with col2:
+            end_t = st.time_input("结束时间", value=time(13, 0))
+    else:
+        start_t = None
+        end_t = None
 
     prep_start = st.date_input("开始准备日期（可选）", value=date.today())
 
+    # 标签多选
     selected_tag_ids = []
     if all_tags:
         st.write("**标签（可多选）**")
@@ -53,14 +71,15 @@ with st.form(f"new_schedule_{st.session_state['form_key']}"):
                     t["name"] for t in items if t["id"] == tid
                 ),
                 label_visibility="collapsed",
-                key=f"tag_sel_{group_name}_{st.session_state['form_key']}",
+                key=f"tag_sel_{group_name}_{fk}",
             )
             selected_tag_ids.extend(chosen)
 
     submitted = st.form_submit_button("创建")
 
 if submitted:
-    if end_t <= start_t:
+    # 阶段型才校验时间
+    if schedule_type == "阶段型" and end_t <= start_t:
         st.error("结束时间必须晚于开始时间")
     else:
         data = {
@@ -68,12 +87,13 @@ if submitted:
             "note": note,
             "deadline_date": str(deadline),
             "prep_start": str(prep_start) if prep_start else None,
-            "start_time": datetime.combine(deadline, start_t).isoformat(),
-            "end_time": datetime.combine(deadline, end_t).isoformat(),
         }
-        insert(user.id, data, tag_ids=selected_tag_ids)
+        if schedule_type == "阶段型":
+            data["start_time"] = datetime.combine(deadline, start_t).isoformat()
+            data["end_time"] = datetime.combine(deadline, end_t).isoformat()
+        # ddl型不写 start_time / end_time，数据库里为 NULL
 
-        # 标记成功 + 递增 key → 表单重置
+        insert(user.id, data, tag_ids=selected_tag_ids)
         st.session_state["just_created"] = True
         st.session_state["form_key"] += 1
         st.rerun()
