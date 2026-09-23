@@ -3,10 +3,13 @@ from src.schedule.tags import fetch_schedule_tags
 
 
 def _attach_tags(user_id: str, schedules: list) -> list:
-    """给每条日程附上 tag_ids 列表"""
+    """给每条日程附上 tag_ids 和 tag_names"""
     mapping = fetch_schedule_tags(user_id)
+    all_tags = {t["id"]: t["name"] for t in fetch_tags(user_id)}
     for s in schedules:
-        s["tag_ids"] = mapping.get(s["id"], [])
+        ids = mapping.get(s["id"], [])
+        s["tag_ids"] = ids
+        s["tag_names"] = [all_tags[tid] for tid in ids if tid in all_tags]
     return schedules
 
 
