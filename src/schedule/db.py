@@ -1,5 +1,5 @@
 from src.supabase_client import get_supabase
-from src.schedule.tags import fetch_schedule_tags
+from src.schedule.tags import fetch_schedule_tags, fetch_tags
 
 
 def _attach_tags(user_id: str, schedules: list) -> list:
