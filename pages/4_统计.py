@@ -129,26 +129,49 @@ chart_df = chart_df[["截止数量", "完成数量", "逾期数量"]]
 # ---- 用 Altair 画分组柱状图 ----
 import altair as alt
 
-chart_long = chart_df.reset_index().melt(
-    id_vars="index",
-    value_vars=["截止数量", "完成数量", "逾期数量"],
+# 准备长表
+chart_long = chart_df.reset_index().rename(columns={"index": "日期"})
+chart_long["日期"] = pd.to_datetime(chart_long["日期"])
+
+# 只取截止和完成，用于柱状图（并排）
+bar_df = chart_long.melt(
+    id_vars="日期",
+    value_vars=["截止数量", "完成数量"],
     var_name="类型",
     value_name="数量"
-).rename(columns={"index": "日期"})
+)
 
-chart = alt.Chart(chart_long).mark_bar().encode(
-    x=alt.X("日期:T", title="日期", axis=alt.Axis(format="%m-%d")),
+# 逾期单独用于折线
+line_df = chart_long[["日期", "逾期数量"]].rename(
+    columns={"逾期数量": "数量"}
+)
+
+# ---- 柱状图：截止 + 完成，并排 ----
+bars = alt.Chart(bar_df).mark_bar().encode(
+    x=alt.X("日期:T", title="日期",
+            axis=alt.Axis(format="%m-%d", labelAngle=-45)),
+    xOffset=alt.XOffset("类型:N", sort=["截止数量", "完成数量"]),
     y=alt.Y("数量:Q", title="数量"),
     color=alt.Color(
         "类型:N",
         scale=alt.Scale(
-            domain=["截止数量", "完成数量", "逾期数量"],
-            range=["#7EC8F0", "#1F4E79", "#D94A4A"]
+            domain=["截止数量", "完成数量"],
+            range=["#7EC8F0", "#1F4E79"]
         ),
-        legend=alt.Legend(title="类型")
+        legend=alt.Legend(title="柱状图")
     ),
-    xOffset="类型:N",
     tooltip=["日期:T", "类型:N", "数量:Q"]
-).properties(height=400)
+)
 
+# ---- 折线图：逾期 ----
+line = alt.Chart(line_df).mark_line(
+    color="#D94A4A", strokeWidth=2, point=True
+).encode(
+    x=alt.X("日期:T"),
+    y=alt.Y("数量:Q"),
+    tooltip=["日期:T", alt.Tooltip("数量:Q", title="逾期数量")]
+)
+
+# ---- 合并 ----
+chart = alt.layer(bars, line).resolve_scale(y="shared").properties(height=400)
 st.altair_chart(chart, use_container_width=True)
