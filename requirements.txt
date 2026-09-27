@@ -3,3 +3,4 @@ supabase
 streamlit-calendar
 pandas
 streamlit-cookies-controller
+altair
