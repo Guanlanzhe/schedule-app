@@ -80,26 +80,36 @@ grouped = sub.set_index("deadline_date").resample(freq_map[freq]).agg(
 ).reset_index()
 
 # 转成"长表"格式，Altair 分组柱状图需要
+import altair as alt
+
+grouped = sub.set_index("deadline_date").resample(freq_map[freq]).agg(
+    截止数量=("id", "count"),
+    完成数量=("status", lambda x: (x == "completed").sum())
+).reset_index()
+
+# 关键：把日期转成字符串，作为分类轴
+grouped["日期"] = grouped["deadline_date"].dt.strftime("%m-%d")
+
 melted = grouped.melt(
-    id_vars="deadline_date",
+    id_vars="日期",
     value_vars=["截止数量", "完成数量"],
     var_name="类型",
     value_name="数量"
 )
 
 chart = alt.Chart(melted).mark_bar().encode(
-    x=alt.X("deadline_date:T", title="日期", axis=alt.Axis(format="%m-%d")),
-    xOffset="类型:N",              # 关键：让两根柱子并排
+    x=alt.X("日期:N", title="日期", sort=None, axis=alt.Axis(labelAngle=-45)),
+    xOffset="类型:N",              # 分类轴上并排生效
     y=alt.Y("数量:Q", title="数量"),
     color=alt.Color(
         "类型:N",
         scale=alt.Scale(
             domain=["截止数量", "完成数量"],
-            range=["#7EB6E8", "#1F4E79"]   # 浅蓝=截止，深蓝=完成
+            range=["#7EB6E8", "#1F4E79"]
         ),
         legend=alt.Legend(title=None)
     ),
-    tooltip=["deadline_date:T", "类型:N", "数量:Q"]
+    tooltip=["日期:N", "类型:N", "数量:Q"]
 ).properties(height=400)
 
 st.altair_chart(chart, use_container_width=True)
