@@ -58,7 +58,12 @@ for s in pending:
             )
         with c2:
             if st.button("✅ 完成", key=f"done_{s['id']}"):
-                update(s["id"], user.id, {"status": "completed"})
+                from datetime import datetime, timezone, timedelta
+                bj_now = datetime.now(timezone(timedelta(hours=8))).isoformat()
+                update(s["id"], user.id, {
+                    "status": "completed",
+                    "completed_at": bj_now
+                })
                 st.rerun()
         with c3:
             if st.button("🗑️ 删除", key=f"del_{s['id']}"):
