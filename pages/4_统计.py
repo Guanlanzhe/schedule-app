@@ -104,7 +104,7 @@ deadline_counts = (
     .rename("截止数量")
 )
 
-# ---- 完成数量：按 completed_dt 分组（只统计完成的） ----
+# ---- 完成数量：按 completed_dt 分组 ----
 completed_df = sub[sub["completed_dt"].notna()]
 completed_counts = (
     completed_df.groupby(pd.Grouper(key="completed_dt", freq=freq_code))
@@ -112,20 +112,43 @@ completed_counts = (
     .rename("完成数量")
 )
 
-# ---- 逾期数量：截至该时间点，累计截止 - 累计完成 ----
-# 先把两个序列对齐到同一时间轴
+# ---- 逾期数量：截至该时间点，累计截止 − 累计完成 ----
 all_index = deadline_counts.index.union(completed_counts.index).sort_values()
 deadline_cum = deadline_counts.reindex(all_index, fill_value=0).cumsum()
 completed_cum = completed_counts.reindex(all_index, fill_value=0).cumsum()
 overdue_cum = (deadline_cum - completed_cum).clip(lower=0).rename("逾期数量")
 
-# 合并成一张表，三根柱子并排
+# ---- 合并成一张表 ----
 chart_df = pd.concat(
     [deadline_counts, completed_counts, overdue_cum],
     axis=1
 ).fillna(0)
 
-# 保证顺序是 截止、完成、逾期
 chart_df = chart_df[["截止数量", "完成数量", "逾期数量"]]
 
-st.bar_chart(chart_df, stack=False)
+# ---- 用 Altair 画分组柱状图 ----
+import altair as alt
+
+chart_long = chart_df.reset_index().melt(
+    id_vars="index",
+    value_vars=["截止数量", "完成数量", "逾期数量"],
+    var_name="类型",
+    value_name="数量"
+).rename(columns={"index": "日期"})
+
+chart = alt.Chart(chart_long).mark_bar().encode(
+    x=alt.X("日期:T", title="日期", axis=alt.Axis(format="%m-%d")),
+    y=alt.Y("数量:Q", title="数量"),
+    color=alt.Color(
+        "类型:N",
+        scale=alt.Scale(
+            domain=["截止数量", "完成数量", "逾期数量"],
+            range=["#7EC8F0", "#1F4E79", "#D94A4A"]
+        ),
+        legend=alt.Legend(title="类型")
+    ),
+    xOffset="类型:N",
+    tooltip=["日期:T", "类型:N", "数量:Q"]
+).properties(height=400)
+
+st.altair_chart(chart, use_container_width=True)
