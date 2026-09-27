@@ -128,4 +128,4 @@ chart_df = pd.concat(
 # 保证顺序是 截止、完成、逾期
 chart_df = chart_df[["截止数量", "完成数量", "逾期数量"]]
 
-st.bar_chart(chart_df)
+st.bar_chart(chart_df, stack=False)
