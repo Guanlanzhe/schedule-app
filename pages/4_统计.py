@@ -72,8 +72,34 @@ if sub.empty:
 freq = st.selectbox("统计粒度", ["按日", "按周", "按年"])
 freq_map = {"按日": "D", "按周": "W", "按年": "Y"}
 
+import altair as alt
+
 grouped = sub.set_index("deadline_date").resample(freq_map[freq]).agg(
     截止数量=("id", "count"),
     完成数量=("status", lambda x: (x == "completed").sum())
+).reset_index()
+
+# 转成"长表"格式，Altair 分组柱状图需要
+melted = grouped.melt(
+    id_vars="deadline_date",
+    value_vars=["截止数量", "完成数量"],
+    var_name="类型",
+    value_name="数量"
 )
-st.bar_chart(grouped)
+
+chart = alt.Chart(melted).mark_bar().encode(
+    x=alt.X("deadline_date:T", title="日期", axis=alt.Axis(format="%m-%d")),
+    xOffset="类型:N",              # 关键：让两根柱子并排
+    y=alt.Y("数量:Q", title="数量"),
+    color=alt.Color(
+        "类型:N",
+        scale=alt.Scale(
+            domain=["截止数量", "完成数量"],
+            range=["#7EB6E8", "#1F4E79"]   # 浅蓝=截止，深蓝=完成
+        ),
+        legend=alt.Legend(title=None)
+    ),
+    tooltip=["deadline_date:T", "类型:N", "数量:Q"]
+).properties(height=400)
+
+st.altair_chart(chart, use_container_width=True)
