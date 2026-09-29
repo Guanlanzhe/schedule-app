@@ -69,8 +69,8 @@ if sub.empty:
     st.info("所选范围内无数据")
     st.stop()
 
-freq = st.selectbox("统计粒度", ["按日", "按周", "按年"])
-freq_map = {"按日": "D", "按周": "W", "按年": "Y"}
+freq = st.selectbox("统计粒度", ["按日", "按周", "按月", "按年"])
+freq_map = {"按日": "D", "按周": "W", "按月": "ME", "按年": "YE"}
 
 import altair as alt
 
@@ -79,16 +79,15 @@ grouped = sub.set_index("deadline_date").resample(freq_map[freq]).agg(
     完成数量=("status", lambda x: (x == "completed").sum())
 ).reset_index()
 
-# 转成"长表"格式，Altair 分组柱状图需要
-import altair as alt
-
-grouped = sub.set_index("deadline_date").resample(freq_map[freq]).agg(
-    截止数量=("id", "count"),
-    完成数量=("status", lambda x: (x == "completed").sum())
-).reset_index()
-
-# 关键：把日期转成字符串，作为分类轴
-grouped["日期"] = grouped["deadline_date"].dt.strftime("%m-%d")
+# 根据粒度决定横轴标签格式
+if freq == "按日":
+    grouped["日期"] = grouped["deadline_date"].dt.strftime("%m-%d")
+elif freq == "按周":
+    grouped["日期"] = grouped["deadline_date"].dt.strftime("%m-%d") + " 周"
+elif freq == "按月":
+    grouped["日期"] = grouped["deadline_date"].dt.strftime("%Y-%m")
+else:  # 按年
+    grouped["日期"] = grouped["deadline_date"].dt.strftime("%Y")
 
 melted = grouped.melt(
     id_vars="日期",
@@ -99,7 +98,7 @@ melted = grouped.melt(
 
 chart = alt.Chart(melted).mark_bar().encode(
     x=alt.X("日期:N", title="日期", sort=None, axis=alt.Axis(labelAngle=-45)),
-    xOffset="类型:N",              # 分类轴上并排生效
+    xOffset="类型:N",
     y=alt.Y("数量:Q", title="数量"),
     color=alt.Color(
         "类型:N",
