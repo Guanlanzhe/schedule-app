@@ -35,14 +35,11 @@ stage_items = []
 
 for s in pending:
     is_stage = bool(s.get("start_time") and s.get("end_time"))
-
-    # 计算剩余天数：阶段型按 start_time，ddl型按 deadline_date
     if is_stage:
         target = datetime.fromisoformat(s["start_time"]).date()
     else:
         target = datetime.fromisoformat(s["deadline_date"]).date()
 
-    # 使用北京时间的“今天”来计算剩余天数
     days_left = (target - today_bj()).days
     s["_days_left"] = days_left
 
@@ -51,13 +48,10 @@ for s in pending:
     else:
         ddl_items.append(s)
 
-# 排序：按剩余天数升序（最紧迫的在上）
 ddl_items.sort(key=lambda x: x["_days_left"])
 stage_items.sort(key=lambda x: x["_days_left"])
 
-
 def format_days(days_left: int) -> str:
-    """把剩余天数格式化成中文提示"""
     if days_left > 0:
         return f"还剩 {days_left} 天"
     elif days_left == 0:
@@ -65,35 +59,39 @@ def format_days(days_left: int) -> str:
     else:
         return f"已逾期 {-days_left} 天"
 
-
 def render_item(s: dict):
-    """渲染单条提醒"""
+    """渲染单条提醒（高级版）"""
     is_overdue = s["status"] == "overdue" or s["_days_left"] < 0
-    color = "🔴" if is_overdue else "🟢"
-    # 使用 markdown 渲染，增加一点间距和加粗
-    st.markdown(
-        f"{color} **{s['category']}** | {s['note'] or '（无备注）'}  \n"
-        f"&nbsp;&nbsp;&nbsp;&nbsp;<span style='color:gray; font-size:0.9em;'>{format_days(s['_days_left'])}</span>", 
-        unsafe_allow_html=True
-    )
+    # 颜色标识：正常为绿色，逾期为红色
+    dot_color = "#EF4444" if is_overdue else "#10B981"
+    
+    # 构建 HTML
+    html = f"""
+    <div style='display: flex; align-items: start; margin-bottom: 12px;'>
+        <div style='width: 8px; height: 8px; border-radius: 50%; background-color: {dot_color}; margin-top: 6px; margin-right: 12px; flex-shrink: 0;'></div>
+        <div style='flex-grow: 1;'>
+            <div style='font-size: 1em; font-weight: 600; color: #1E293B;'>{s['category']} <span style='font-weight: 400; color: #475569;'>{s['note'] or ''}</span></div>
+            <div style='font-size: 0.85em; color: #94A3B8; margin-top: 2px;'>{format_days(s['_days_left'])}</div>
+        </div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
 
 
 col1, col2 = st.columns(2)
 
-# 左列：ddl 提醒（加上边框容器）
 with col1:
     with st.container(border=True):
-        st.markdown("### 📌 ddl 提醒")
+        st.markdown("<h3 style='font-size: 1.2rem; margin-bottom: 1rem;'>📌 DDL 提醒</h3>", unsafe_allow_html=True)
         if not ddl_items:
             st.caption("暂无 ddl 型日程")
         else:
             for s in ddl_items:
                 render_item(s)
 
-# 右列：阶段型日程提醒（加上边框容器）
 with col2:
     with st.container(border=True):
-        st.markdown("### ⏳ 阶段型日程提醒")
+        st.markdown("<h3 style='font-size: 1.2rem; margin-bottom: 1rem;'>⏳ 阶段型日程提醒</h3>", unsafe_allow_html=True)
         if not stage_items:
             st.caption("暂无阶段型日程")
         else:
