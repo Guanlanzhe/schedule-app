@@ -5,6 +5,7 @@ from src.schedule.db import fetch_pending, delete, update
 from src.schedule.overdue import refresh_overdue
 from src.schedule.tags import fetch_tags
 from src.schedule.categories import fetch_categories
+from src.time_utils import today_bj
 
 load_style()
 user = require_login()
@@ -49,7 +50,8 @@ if not pending:
 for s in pending:
     # 用边框容器包裹，看起来像卡片
     with st.container(border=True):
-        c1, c2, c3 = st.columns([5, 1, 1])
+        # 调整列宽比例，给按钮留出足够的空间显示中文
+        c1, c2, c3 = st.columns([6, 1.2, 1.2])
         with c1:
             tag = ""
             if s["status"] == "overdue":
@@ -64,11 +66,13 @@ for s in pending:
                 unsafe_allow_html=True
             )
         with c2:
-            if st.button("✅", key=f"done_{s['id']}", help="标记为完成"):
+            # 恢复中文“完成”
+            if st.button("完成", key=f"done_{s['id']}", help="标记为完成", use_container_width=True):
                 update(s["id"], user.id, {"status": "completed"})
                 st.rerun()
         with c3:
-            if st.button("🗑️", key=f"del_{s['id']}", help="永久删除"):
+            # 恢复中文“删除”
+            if st.button("删除", key=f"del_{s['id']}", help="永久删除", use_container_width=True):
                 delete(s["id"], user.id)
                 st.rerun()
 
@@ -101,7 +105,7 @@ for s in pending:
                 else:
                     new_start, new_end = None, None
 
-                new_prep = st.date_input("开始准备日期（可选）", value=prep_val if prep_val else date.today())
+                new_prep = st.date_input("开始准备日期（可选）", value=prep_val if prep_val else today_bj())
                 new_tags = st.multiselect("标签", options=list(tag_map.keys()), default=s["tag_ids"], format_func=lambda tid: tag_map[tid])
                 
                 saved = st.form_submit_button("保存修改")
