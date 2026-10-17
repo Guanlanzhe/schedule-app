@@ -17,10 +17,10 @@ def load_style():
             background-color: #F8FAFC;
         }
         
-        /* 2. 隐藏默认冗余元素 */
+        /* 2. 隐藏默认冗余元素 (精准隐藏，避免误伤日历) */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
-        header {visibility: hidden;}
+        header[data-testid="stHeader"] {visibility: hidden;}
         
         /* 3. 卡片容器 */
         div[data-testid="stVerticalBlockBorderWrapper"] {
@@ -77,6 +77,23 @@ def load_style():
         /* 7. 文本排版 */
         h1 { font-size: 2rem !important; font-weight: 700 !important; color: #1E293B !important; letter-spacing: -0.5px; padding-bottom: 0rem !important;}
         h2, h3 { font-weight: 600 !important; color: #334155 !important; padding-bottom: 0.5rem !important;}
+        
+        /* 8. 修复日期选择器（日历）被全局样式破坏的问题 */
+        div[data-baseweb="calendar"] button {
+            visibility: visible !important;
+            display: block !important;
+        }
+        div[data-baseweb="calendar"] h2,
+        div[data-baseweb="calendar"] div[role="heading"] {
+            font-size: 1rem !important;
+            font-weight: 600 !important;
+            color: #1E293B !important;
+            visibility: visible !important;
+            display: block !important;
+        }
+        div[data-baseweb="popover"] {
+            z-index: 9999 !important;
+        }
         </style>
     """, unsafe_allow_html=True)
 
