@@ -219,15 +219,41 @@ with st.container(border=True):
             display_df.columns = ["截止日期", "类别", "学科", "备注", "开始准备日期"]
             display_df = display_df.sort_values("截止日期", ascending=False)
 
-            centered_config = {
-                col: st.column_config.TextColumn(col, alignment="center") 
-                for col in ["截止日期", "类别", "学科", "备注", "开始准备日期"]
-            }
+            # 手动构建 HTML 表格，实现完美居中与高级质感
+            html_table = """
+            <div style='overflow-x: auto;'>
+                <table style='width: 100%; border-collapse: collapse; text-align: center; font-size: 0.9rem; color: #334155;'>
+                    <thead>
+                        <tr style='background-color: #F8FAFC; border-bottom: 2px solid #E2E8F0;'>
+                            <th style='padding: 12px; font-weight: 600; color: #475569;'>截止日期</th>
+                            <th style='padding: 12px; font-weight: 600; color: #475569;'>类别</th>
+                            <th style='padding: 12px; font-weight: 600; color: #475569;'>学科</th>
+                            <th style='padding: 12px; font-weight: 600; color: #475569;'>备注</th>
+                            <th style='padding: 12px; font-weight: 600; color: #475569;'>开始准备日期</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            """
             
-            st.dataframe(
-                display_df, 
-                use_container_width=True, 
-                hide_index=True,
-                column_config=centered_config
-            )
+            for index, row in display_df.iterrows():
+                # 隔行变色，增加阅读体验
+                bg_color = "#FFFFFF" if index % 2 == 0 else "#F8FAFC"
+                html_table += f"""
+                        <tr style='background-color: {bg_color}; border-bottom: 1px solid #E2E8F0;'>
+                            <td style='padding: 10px;'>{row['截止日期']}</td>
+                            <td style='padding: 10px;'>{row['类别']}</td>
+                            <td style='padding: 10px;'>{row['学科']}</td>
+                            <td style='padding: 10px;'>{row['备注']}</td>
+                            <td style='padding: 10px;'>{row['开始准备日期']}</td>
+                        </tr>
+                """
+            
+            html_table += """
+                    </tbody>
+                </table>
+            </div>
+            """
+            
+            # 渲染 HTML 表格
+            st.markdown(html_table, unsafe_allow_html=True)
             st.caption(f"共 {len(display_df)} 条记录")
