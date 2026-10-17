@@ -11,15 +11,17 @@ load_style()
 user = require_login()
 refresh_overdue(user.id)
 
-st.title("📋 待完成日程")
+st.title("待办事项")
+st.write("") # 留点空隙
 
 all_tags = fetch_tags(user.id)
 all_cats = fetch_categories(user.id)
 tag_map = {t["id"]: t["name"] for t in all_tags}
 cat_names = [c["name"] for c in all_cats]
 
-# 标签筛选
-with st.expander("🔍 筛选选项", expanded=False):
+# 筛选器放在折叠框里
+with st.expander("🔍 筛选", expanded=False):
+    # ... (保留之前的筛选逻辑) ...
     filter_ids = []
     if all_tags:
         groups = {}
@@ -29,11 +31,9 @@ with st.expander("🔍 筛选选项", expanded=False):
         for i, (group_name, items) in enumerate(groups.items()):
             with cols[i % len(groups)]:
                 chosen = st.multiselect(
-                    f"按{group_name}",
+                    f"{group_name}",
                     options=[t["id"] for t in items],
-                    format_func=lambda tid: next(
-                        t["name"] for t in items if t["id"] == tid
-                    ),
+                    format_func=lambda tid: next(t["name"] for t in items if t["id"] == tid),
                     key=f"filter_{group_name}",
                 )
                 filter_ids.extend(chosen)
@@ -43,87 +43,66 @@ if filter_ids:
     pending = [s for s in pending if set(s["tag_ids"]) & set(filter_ids)]
 
 if not pending:
-    st.success("暂无待完成日程 🎉")
+    st.success("太棒了，没有待办事项！")
     st.stop()
 
-# ========== 自定义 CSS：让表单控件更紧凑 ==========
-st.markdown("""
-<style>
-    /* 缩小表单项之间的垂直间距 */
-    div[data-testid="stForm"] {
-        padding: 1rem !important;
-        border: none !important;
-        background-color: transparent !important;
-    }
-    div[data-testid="stVerticalBlock"] > div {
-        padding-bottom: 0rem;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# 渲染待完成列表
 for s in pending:
     with st.container(border=True):
-        # ========== 第一行：信息 + 按钮 ==========
-        # 列宽分配：类别(2) + 备注(4) + 日期(2) + 编辑(1) + 完成(1) + 删除(1)
-        c_cat, c_note, c_date, c_edit, c_done, c_del = st.columns([2, 4, 2, 1, 1, 1])
+        # 分为信息区和操作区
+        c_info, c_actions = st.columns([8, 3])
         
-        with c_cat:
-            st.markdown(f"<div style='font-weight: 600; font-size: 1.05em; line-height: 2.3;'>{s['category']}</div>", unsafe_allow_html=True)
+        with c_info:
+            # 主标题：类别 + 备注
+            title_html = f"<div style='font-size: 1.1rem; font-weight: 600; color: #1E293B;'>{s['category']}"
+            if s['note']:
+                title_html += f" <span style='font-weight: 400; color: #475569;'>{s['note']}</span>"
+            title_html += "</div>"
             
-        with c_note:
-            note_text = s['note'] or '（无备注）'
-            # 标签作为小字加在备注后面
-            tags_html = ""
+            # 副标题：时间 + 标签
+            date_str = datetime.fromisoformat(s['deadline_date']).strftime("%Y-%m-%d")
+            meta_html = f"<div style='font-size: 0.85rem; color: #94A3B8; margin-top: 4px;'>"
+            if s["status"] == "overdue":
+                meta_html += f"<span style='color: #EF4444; font-weight: 500;'>逾期 {s['overdue_days']} 天</span> &nbsp;·&nbsp; "
+            meta_html += f"截止: {date_str}"
+            
+            # 追加标签
             if s["tag_ids"]:
+                meta_html += " &nbsp;&nbsp; "
                 for tid in s["tag_ids"]:
                     if tid in tag_map:
-                        tags_html += f"<span style='color:#2563EB; font-size:0.8em; margin-left:8px;'>#{tag_map[tid]}</span>"
+                        meta_html += f"<span class='custom-tag'>{tag_map[tid]}</span>"
+            meta_html += "</div>"
             
-            st.markdown(f"<div style='line-height: 2.3;'>{note_text}{tags_html}</div>", unsafe_allow_html=True)
+            st.markdown(title_html + meta_html, unsafe_allow_html=True)
             
-        with c_date:
-            date_str = datetime.fromisoformat(s['deadline_date']).strftime("%m-%d")
-            date_html = f"<div style='color: #94A3B8; font-size: 0.9em; line-height: 2.3;'>截止: {date_str}"
-            if s["status"] == "overdue":
-                date_html += f" <span style='color:#EF4444; font-weight:500;'>· 逾期 {s['overdue_days']} 天</span>"
-            date_html += "</div>"
-            st.markdown(date_html, unsafe_allow_html=True)
-            
-        # 编辑按钮的状态控制
-        edit_key = f"toggle_edit_{s['id']}"
-        if edit_key not in st.session_state:
-            st.session_state[edit_key] = False
-            
-        with c_edit:
-            btn_label = "收起" if st.session_state[edit_key] else "编辑"
-            if st.button(btn_label, key=f"btn_edit_{s['id']}", use_container_width=True):
-                st.session_state[edit_key] = not st.session_state[edit_key]
-                st.rerun()
+        with c_actions:
+            # 操作按钮水平排列
+            c_e, c_d, c_del = st.columns(3)
+            edit_key = f"toggle_edit_{s['id']}"
+            if edit_key not in st.session_state:
+                st.session_state[edit_key] = False
                 
-        with c_done:
-            if st.button("完成", key=f"done_{s['id']}", use_container_width=True):
-                update(s["id"], user.id, {"status": "completed"})
-                st.rerun()
-                
-        with c_del:
-            if st.button("删除", key=f"del_{s['id']}", use_container_width=True):
-                delete(s["id"], user.id)
-                st.rerun()
+            with c_e:
+                if st.button("收起" if st.session_state[edit_key] else "编辑", key=f"btn_edit_{s['id']}"):
+                    st.session_state[edit_key] = not st.session_state[edit_key]
+                    st.rerun()
+            with c_d:
+                if st.button("完成", key=f"done_{s['id']}"):
+                    update(s["id"], user.id, {"status": "completed"})
+                    st.rerun()
+            with c_del:
+                if st.button("删除", key=f"del_{s['id']}"):
+                    delete(s["id"], user.id)
+                    st.rerun()
 
-        # ========== 第二行：展开的编辑表单（极其紧凑） ==========
+        # ========== 编辑区（表单） ==========
         if st.session_state[edit_key]:
-            st.markdown("<hr style='margin: 0.5rem 0; border-top: 1px solid #E2E8F0;'/>", unsafe_allow_html=True)
-            
+            st.divider()
             is_stage = bool(s.get("start_time") and s.get("end_time"))
             current_type = "阶段型" if is_stage else "ddl型"
-
-            # 把 radio 做成胶囊样式（或极小化）
-            edit_type = st.radio(
-                "日程类型", ["ddl型", "阶段型"],
-                index=0 if current_type == "ddl型" else 1,
-                horizontal=True, key=f"edit_type_{s['id']}", label_visibility="collapsed"
-            )
+            
+            # 美化 radio
+            edit_type = st.radio("日程类型", ["ddl型", "阶段型"], index=0 if current_type == "ddl型" else 1, horizontal=True, label_visibility="collapsed")
 
             deadline_val = datetime.fromisoformat(s["deadline_date"]).date()
             start_val = datetime.fromisoformat(s["start_time"]).time() if s.get("start_time") else time(11, 0)
@@ -132,40 +111,33 @@ for s in pending:
             cat_index = cat_names.index(s["category"]) if s["category"] in cat_names else 0
 
             with st.form(f"edit_{s['id']}_{edit_type}"):
-                # 第一排：类别、备注
-                f_c1, f_c2 = st.columns(2)
-                new_cat = f_c1.selectbox("类别", cat_names, index=cat_index)
-                new_note = f_c2.text_input("备注", value=s["note"] or "")
+                # 表单三列布局
+                f1, f2, f3 = st.columns([2, 2, 1])
+                with f1:
+                    new_cat = st.selectbox("类别", cat_names, index=cat_index)
+                    new_dl = st.date_input("截止日期", value=deadline_val)
+                with f2:
+                    new_note = st.text_input("备注", value=s["note"] or "")
+                    new_prep = st.date_input("开始准备日期", value=prep_val if prep_val else today_bj())
+                with f3:
+                    if edit_type == "阶段型":
+                        new_start = st.time_input("开始时间", value=start_val)
+                        new_end = st.time_input("结束时间", value=end_val)
+                    else:
+                        new_start, new_end = None, None
                 
-                # 第二排：日期、准备日期
-                f_c3, f_c4 = st.columns(2)
-                new_dl = f_c3.date_input("截止日期", value=deadline_val)
-                new_prep = f_c4.date_input("开始准备日期（可选）", value=prep_val if prep_val else today_bj())
+                # 标签单独一行
+                new_tags = st.multiselect("标签", options=list(tag_map.keys()), default=s["tag_ids"], format_func=lambda tid: tag_map[tid])
                 
-                # 第三排：时间（如果是阶段型）或直接标签
-                if edit_type == "阶段型":
-                    f_c5, f_c6, f_c7 = st.columns(3)
-                    new_start = f_c5.time_input("开始时间", value=start_val)
-                    new_end = f_c6.time_input("结束时间", value=end_val)
-                    with f_c7:
-                        new_tags = st.multiselect("标签", options=list(tag_map.keys()), default=s["tag_ids"], format_func=lambda tid: tag_map[tid])
-                else:
-                    new_start, new_end = None, None
-                    new_tags = st.multiselect("标签", options=list(tag_map.keys()), default=s["tag_ids"], format_func=lambda tid: tag_map[tid])
-                
-                # 保存按钮靠右
-                _, btn_col = st.columns([4, 1])
+                _, btn_col = st.columns([5, 1])
                 with btn_col:
-                    saved = st.form_submit_button("保存修改", use_container_width=True)
+                    saved = st.form_submit_button("保存", type="primary", use_container_width=True)
 
             if saved:
                 if edit_type == "阶段型" and new_end <= new_start:
                     st.error("结束时间必须晚于开始时间")
                 else:
-                    updates = {
-                        "category": new_cat, "note": new_note,
-                        "deadline_date": str(new_dl), "prep_start": str(new_prep) if new_prep else None,
-                    }
+                    updates = {"category": new_cat, "note": new_note, "deadline_date": str(new_dl), "prep_start": str(new_prep)}
                     if edit_type == "阶段型":
                         updates["start_time"] = datetime.combine(new_dl, new_start).isoformat()
                         updates["end_time"] = datetime.combine(new_dl, new_end).isoformat()
@@ -173,6 +145,5 @@ for s in pending:
                         updates["start_time"] = None
                         updates["end_time"] = None
                     update(s["id"], user.id, updates, tag_ids=new_tags)
-                    st.success("已保存")
                     st.session_state[edit_key] = False
                     st.rerun()
