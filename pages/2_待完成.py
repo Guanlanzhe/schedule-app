@@ -12,7 +12,7 @@ user = require_login()
 refresh_overdue(user.id)
 
 st.title("待办事项")
-st.write("") # 留点空隙
+st.write("")
 
 all_tags = fetch_tags(user.id)
 all_cats = fetch_categories(user.id)
@@ -21,7 +21,6 @@ cat_names = [c["name"] for c in all_cats]
 
 # 筛选器放在折叠框里
 with st.expander("🔍 筛选", expanded=False):
-    # ... (保留之前的筛选逻辑) ...
     filter_ids = []
     if all_tags:
         groups = {}
@@ -48,50 +47,50 @@ if not pending:
 
 for s in pending:
     with st.container(border=True):
-        # 分为信息区和操作区
-        c_info, c_actions = st.columns([8, 3])
+        # 分为信息区和操作区：左侧占 8 份，右侧按钮占 4 份
+        c_info, c_actions = st.columns([8, 4])
         
         with c_info:
-            # 主标题：类别 + 备注
-            title_html = f"<div style='font-size: 1.1rem; font-weight: 600; color: #1E293B;'>{s['category']}"
+            # 动态生成 HTML：类别、备注、标签
+            title_html = f"<div style='font-size: 1.05rem; font-weight: 600; color: #1E293B; line-height: 1.4;'>"
+            title_html += f"{s['category']}"
             if s['note']:
                 title_html += f" <span style='font-weight: 400; color: #475569;'>{s['note']}</span>"
+            
+            # 把标签直接追加在标题后面
+            if s["tag_ids"]:
+                for tid in s["tag_ids"]:
+                    if tid in tag_map:
+                        title_html += f" <span style='font-size: 0.75rem; color: #2563EB; background-color: #EFF6FF; padding: 2px 6px; border-radius: 4px; vertical-align: middle; font-weight: 400; margin-left: 4px;'>{tag_map[tid]}</span>"
             title_html += "</div>"
             
-            # 副标题：时间 + 标签
+            # 副标题：时间与逾期状态
             date_str = datetime.fromisoformat(s['deadline_date']).strftime("%Y-%m-%d")
             meta_html = f"<div style='font-size: 0.85rem; color: #94A3B8; margin-top: 4px;'>"
             if s["status"] == "overdue":
                 meta_html += f"<span style='color: #EF4444; font-weight: 500;'>逾期 {s['overdue_days']} 天</span> &nbsp;·&nbsp; "
-            meta_html += f"截止: {date_str}"
-            
-            # 追加标签
-            if s["tag_ids"]:
-                meta_html += " &nbsp;&nbsp; "
-                for tid in s["tag_ids"]:
-                    if tid in tag_map:
-                        meta_html += f"<span class='custom-tag'>{tag_map[tid]}</span>"
-            meta_html += "</div>"
+            meta_html += f"截止: {date_str}</div>"
             
             st.markdown(title_html + meta_html, unsafe_allow_html=True)
             
         with c_actions:
-            # 操作按钮水平排列
+            # 按钮垂直居中
+            st.write("") 
             c_e, c_d, c_del = st.columns(3)
             edit_key = f"toggle_edit_{s['id']}"
             if edit_key not in st.session_state:
                 st.session_state[edit_key] = False
                 
             with c_e:
-                if st.button("收起" if st.session_state[edit_key] else "编辑", key=f"btn_edit_{s['id']}"):
+                if st.button("收起" if st.session_state[edit_key] else "编辑", key=f"btn_edit_{s['id']}", use_container_width=True):
                     st.session_state[edit_key] = not st.session_state[edit_key]
                     st.rerun()
             with c_d:
-                if st.button("完成", key=f"done_{s['id']}"):
+                if st.button("完成", key=f"done_{s['id']}", use_container_width=True):
                     update(s["id"], user.id, {"status": "completed"})
                     st.rerun()
             with c_del:
-                if st.button("删除", key=f"del_{s['id']}"):
+                if st.button("删除", key=f"del_{s['id']}", use_container_width=True):
                     delete(s["id"], user.id)
                     st.rerun()
 
@@ -101,7 +100,6 @@ for s in pending:
             is_stage = bool(s.get("start_time") and s.get("end_time"))
             current_type = "阶段型" if is_stage else "ddl型"
             
-            # 美化 radio
             edit_type = st.radio("日程类型", ["ddl型", "阶段型"], index=0 if current_type == "ddl型" else 1, horizontal=True, label_visibility="collapsed")
 
             deadline_val = datetime.fromisoformat(s["deadline_date"]).date()
@@ -111,7 +109,6 @@ for s in pending:
             cat_index = cat_names.index(s["category"]) if s["category"] in cat_names else 0
 
             with st.form(f"edit_{s['id']}_{edit_type}"):
-                # 表单三列布局
                 f1, f2, f3 = st.columns([2, 2, 1])
                 with f1:
                     new_cat = st.selectbox("类别", cat_names, index=cat_index)
@@ -126,12 +123,11 @@ for s in pending:
                     else:
                         new_start, new_end = None, None
                 
-                # 标签单独一行
                 new_tags = st.multiselect("标签", options=list(tag_map.keys()), default=s["tag_ids"], format_func=lambda tid: tag_map[tid])
                 
                 _, btn_col = st.columns([5, 1])
                 with btn_col:
-                    saved = st.form_submit_button("保存", type="primary", use_container_width=True)
+                    saved = st.form_submit_button("保存", use_container_width=True)
 
             if saved:
                 if edit_type == "阶段型" and new_end <= new_start:
