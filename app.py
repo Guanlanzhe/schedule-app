@@ -1,99 +1,73 @@
-from datetime import datetime, date
+from datetime import datetime
 import streamlit as st
 from src.ui import load_style, show_login_form
 from src.supabase_client import logout
 from src.schedule.db import fetch_pending
 from src.schedule.overdue import refresh_overdue
-from src.time_utils import today_bj  # 引入你写好的北京时间函数
+from src.time_utils import today_bj
 
 load_style()
 
-# 未登录 → 显示登录表单
 if "user" not in st.session_state:
     show_login_form()
     st.stop()
 
-# 已登录
 user = st.session_state["user"]
 
-st.sidebar.write(f"👋 {user.email}")
-if st.sidebar.button("退出登录"):
-    logout()
-    st.rerun()
+# 侧边栏
+with st.sidebar:
+    st.markdown(f"### 👋 你好,\n**{user.email.split('@')[0]}**")
+    st.divider()
+    if st.button("退出登录", use_container_width=True):
+        logout()
+        st.rerun()
 
-st.title("📅 日程管理主页")
-st.subheader("日程提醒")
+st.title("概览")
 
 refresh_overdue(user.id)
-
-# 取所有未完成日程（含逾期）
 pending = fetch_pending(user.id)
 
-# 按类型拆分
-ddl_items = []
-stage_items = []
-
+# 数据处理
+ddl_items, stage_items = [], []
 for s in pending:
     is_stage = bool(s.get("start_time") and s.get("end_time"))
-    if is_stage:
-        target = datetime.fromisoformat(s["start_time"]).date()
-    else:
-        target = datetime.fromisoformat(s["deadline_date"]).date()
-
-    days_left = (target - today_bj()).days
-    s["_days_left"] = days_left
-
-    if is_stage:
-        stage_items.append(s)
-    else:
-        ddl_items.append(s)
+    target = datetime.fromisoformat(s["start_time"]).date() if is_stage else datetime.fromisoformat(s["deadline_date"]).date()
+    s["_days_left"] = (target - today_bj()).days
+    (stage_items if is_stage else ddl_items).append(s)
 
 ddl_items.sort(key=lambda x: x["_days_left"])
 stage_items.sort(key=lambda x: x["_days_left"])
 
-def format_days(days_left: int) -> str:
-    if days_left > 0:
-        return f"还剩 {days_left} 天"
-    elif days_left == 0:
-        return "今天截止"
-    else:
-        return f"已逾期 {-days_left} 天"
-
-def render_item(s: dict):
-    """渲染单条提醒（高级版）"""
-    is_overdue = s["status"] == "overdue" or s["_days_left"] < 0
-    # 颜色标识：正常为绿色，逾期为红色
-    dot_color = "#EF4444" if is_overdue else "#10B981"
+def render_item(s):
+    is_overdue = s["_days_left"] < 0
+    color = "#EF4444" if is_overdue else "#10B981"
+    status_text = f"逾期 {-s['_days_left']} 天" if is_overdue else ("今天截止" if s["_days_left"] == 0 else f"还有 {s['_days_left']} 天")
     
-    # 构建 HTML
-    html = f"""
-    <div style='display: flex; align-items: start; margin-bottom: 12px;'>
-        <div style='width: 8px; height: 8px; border-radius: 50%; background-color: {dot_color}; margin-top: 6px; margin-right: 12px; flex-shrink: 0;'></div>
+    st.markdown(f"""
+    <div style='display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #F1F5F9;'>
+        <div style='width: 6px; height: 6px; border-radius: 50%; background-color: {color}; margin-right: 12px;'></div>
         <div style='flex-grow: 1;'>
-            <div style='font-size: 1em; font-weight: 600; color: #1E293B;'>{s['category']} <span style='font-weight: 400; color: #475569;'>{s['note'] or ''}</span></div>
-            <div style='font-size: 0.85em; color: #94A3B8; margin-top: 2px;'>{format_days(s['_days_left'])}</div>
+            <div style='font-weight: 600; color: #1E293B; font-size: 0.95rem;'>{s['category']} <span style='font-weight: 400; color: #64748B;'>{s['note'] or ''}</span></div>
         </div>
+        <div style='color: {color}; font-size: 0.85rem; font-weight: 500;'>{status_text}</div>
     </div>
-    """
-    st.markdown(html, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-
+st.write("")
 col1, col2 = st.columns(2)
 
 with col1:
     with st.container(border=True):
-        st.markdown("<h3 style='font-size: 1.2rem; margin-bottom: 1rem;'>📌 DDL 提醒</h3>", unsafe_allow_html=True)
+        st.markdown("### 📌 临近 DDL")
         if not ddl_items:
-            st.caption("暂无 ddl 型日程")
-        else:
-            for s in ddl_items:
-                render_item(s)
+            st.caption("暂无任务")
+        for s in ddl_items[:5]: # 最多显示5个
+            render_item(s)
 
 with col2:
     with st.container(border=True):
-        st.markdown("<h3 style='font-size: 1.2rem; margin-bottom: 1rem;'>⏳ 阶段型日程提醒</h3>", unsafe_allow_html=True)
+        st.markdown("### ⏳ 阶段安排")
         if not stage_items:
-            st.caption("暂无阶段型日程")
-        else:
-            for s in stage_items:
-                render_item(s)
+            st.caption("暂无任务")
+        for s in stage_items[:5]:
+            render_item(s)
