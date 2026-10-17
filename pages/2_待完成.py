@@ -14,6 +14,22 @@ refresh_overdue(user.id)
 st.title("待办事项")
 st.write("")
 
+# 注入 CSS，专门消除列布局的默认垂直对齐空白
+st.markdown("""
+<style>
+    /* 让列容器内的元素垂直居中，并去掉所有默认 margin */
+    div[data-testid="column"] {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    /* 消除卡片内部多余空白 */
+    div[data-testid="stVerticalBlock"] > div {
+        padding-bottom: 0 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 all_tags = fetch_tags(user.id)
 all_cats = fetch_categories(user.id)
 tag_map = {t["id"]: t["name"] for t in all_tags}
@@ -47,23 +63,23 @@ if not pending:
 
 for s in pending:
     with st.container(border=True):
-        # 左侧信息区 (占 8 份)，右侧按钮区 (占 4 份)
-        c_info, c_actions = st.columns([8, 4])
+        c_info, c_actions = st.columns([7, 3])
         
         with c_info:
-            # 第一行：类别 + 备注 + 标签
-            title_html = f"<div style='font-size: 1.05rem; font-weight: 600; color: #1E293B; line-height: 1.2;'>"
+            # 动态生成左侧 HTML 信息
+            title_html = f"<div style='font-size: 1.05rem; font-weight: 600; color: #1E293B; line-height: 1.4;'>"
             title_html += f"{s['category']}"
             if s['note']:
-                title_html += f" &nbsp; <span style='font-weight: 400; color: #475569;'>{s['note']}</span>"
+                title_html += f" <span style='font-weight: 400; color: #475569;'>{s['note']}</span>"
             
+            # 标签内联
             if s["tag_ids"]:
                 for tid in s["tag_ids"]:
                     if tid in tag_map:
-                        title_html += f" &nbsp; <span style='font-size: 0.75rem; color: #2563EB; background-color: #EFF6FF; padding: 2px 6px; border-radius: 4px; font-weight: 400;'>{tag_map[tid]}</span>"
+                        title_html += f" <span style='font-size: 0.75rem; color: #2563EB; background-color: #EFF6FF; padding: 2px 6px; border-radius: 4px; vertical-align: middle; font-weight: 400; margin-left: 4px;'>{tag_map[tid]}</span>"
             title_html += "</div>"
             
-            # 第二行：截止日期和逾期状态
+            # 副标题：时间与逾期状态
             date_str = datetime.fromisoformat(s['deadline_date']).strftime("%Y-%m-%d")
             meta_html = f"<div style='font-size: 0.85rem; color: #94A3B8; margin-top: 6px;'>"
             if s["status"] == "overdue":
@@ -77,17 +93,7 @@ for s in pending:
             edit_key = f"toggle_edit_{s['id']}"
             if edit_key not in st.session_state:
                 st.session_state[edit_key] = False
-            
-            # 用纯 CSS 强行把这一行按钮的顶部对齐
-            st.markdown("""
-                <style>
-                /* 精准定位列里的按钮，消除默认间距并靠上对齐 */
-                div[data-testid="column"] > div:first-child {
-                    margin-top: -10px !important; /* 往上顶一点，和左侧文字平齐 */
-                }
-                </style>
-            """, unsafe_allow_html=True)
-            
+                
             with c_e:
                 if st.button("收起" if st.session_state[edit_key] else "编辑", key=f"btn_edit_{s['id']}", use_container_width=True):
                     st.session_state[edit_key] = not st.session_state[edit_key]
