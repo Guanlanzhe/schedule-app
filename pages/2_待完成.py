@@ -14,12 +14,28 @@ refresh_overdue(user.id)
 st.title("待办事项")
 st.write("")
 
+# 注入 CSS，专门消除列布局的默认垂直对齐空白
+st.markdown("""
+<style>
+    /* 让列容器内的元素垂直居中，并去掉所有默认 margin */
+    div[data-testid="column"] {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    /* 消除卡片内部多余空白 */
+    div[data-testid="stVerticalBlock"] > div {
+        padding-bottom: 0 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 all_tags = fetch_tags(user.id)
 all_cats = fetch_categories(user.id)
 tag_map = {t["id"]: t["name"] for t in all_tags}
 cat_names = [c["name"] for c in all_cats]
 
-# 筛选器放在折叠框里
+# 筛选器
 with st.expander("🔍 筛选", expanded=False):
     filter_ids = []
     if all_tags:
@@ -47,17 +63,16 @@ if not pending:
 
 for s in pending:
     with st.container(border=True):
-        # 分为信息区和操作区：左侧占 8 份，右侧按钮占 4 份
-        c_info, c_actions = st.columns([8, 4])
+        c_info, c_actions = st.columns([7, 3])
         
         with c_info:
-            # 动态生成 HTML：类别、备注、标签
+            # 动态生成左侧 HTML 信息
             title_html = f"<div style='font-size: 1.05rem; font-weight: 600; color: #1E293B; line-height: 1.4;'>"
             title_html += f"{s['category']}"
             if s['note']:
                 title_html += f" <span style='font-weight: 400; color: #475569;'>{s['note']}</span>"
             
-            # 把标签直接追加在标题后面
+            # 标签内联
             if s["tag_ids"]:
                 for tid in s["tag_ids"]:
                     if tid in tag_map:
@@ -66,7 +81,7 @@ for s in pending:
             
             # 副标题：时间与逾期状态
             date_str = datetime.fromisoformat(s['deadline_date']).strftime("%Y-%m-%d")
-            meta_html = f"<div style='font-size: 0.85rem; color: #94A3B8; margin-top: 4px;'>"
+            meta_html = f"<div style='font-size: 0.85rem; color: #94A3B8; margin-top: 6px;'>"
             if s["status"] == "overdue":
                 meta_html += f"<span style='color: #EF4444; font-weight: 500;'>逾期 {s['overdue_days']} 天</span> &nbsp;·&nbsp; "
             meta_html += f"截止: {date_str}</div>"
@@ -74,8 +89,6 @@ for s in pending:
             st.markdown(title_html + meta_html, unsafe_allow_html=True)
             
         with c_actions:
-            # 按钮垂直居中
-            st.write("") 
             c_e, c_d, c_del = st.columns(3)
             edit_key = f"toggle_edit_{s['id']}"
             if edit_key not in st.session_state:
@@ -94,7 +107,7 @@ for s in pending:
                     delete(s["id"], user.id)
                     st.rerun()
 
-        # ========== 编辑区（表单） ==========
+        # ========== 编辑区 ==========
         if st.session_state[edit_key]:
             st.divider()
             is_stage = bool(s.get("start_time") and s.get("end_time"))
