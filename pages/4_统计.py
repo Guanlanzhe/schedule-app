@@ -112,3 +112,58 @@ chart = alt.Chart(melted).mark_bar().encode(
 ).properties(height=400)
 
 st.altair_chart(chart, use_container_width=True)
+
+st.divider()
+
+# ========== 已完成历史任务表格 ==========
+st.subheader("✅ 已完成任务列表")
+
+# 从原始数据中筛出已完成的
+completed_df = df[df["status"] == "completed"].copy()
+
+if completed_df.empty:
+    st.info("暂无已完成的任务")
+else:
+    # 提取所有出现过的类别供用户筛选
+    all_categories = completed_df["category"].unique().tolist()
+    
+    # 类别筛选器（多选，默认全选）
+    selected_cats = st.multiselect(
+        "按类别筛选（可多选）",
+        options=all_categories,
+        default=all_categories
+    )
+
+    # 如果用户清空了筛选，给个提示，否则展示数据
+    if not selected_cats:
+        st.warning("请至少选择一个类别")
+    else:
+        # 应用筛选
+        filtered_df = completed_df[completed_df["category"].isin(selected_cats)]
+        
+        # 整理要展示的列，并重命名成中文
+        display_df = filtered_df[[
+            "deadline_date", "category", "note", "prep_start"
+        ]].copy()
+        
+        # 格式化日期，去掉时间部分
+        display_df["deadline_date"] = pd.to_datetime(display_df["deadline_date"]).dt.strftime("%Y-%m-%d")
+        display_df["prep_start"] = pd.to_datetime(display_df["prep_start"]).dt.strftime("%Y-%m-%d")
+        
+        # 如果原字段是空的，转出来的会是字符串 'NaT'，把它替换成空字符串
+        display_df["prep_start"] = display_df["prep_start"].replace("NaT", "")
+        display_df["note"] = display_df["note"].fillna("")
+        
+        # 改名
+        display_df.columns = ["截止日期", "类别", "备注", "开始准备日期"]
+        
+        # 按截止日期倒序排列（最近完成的在上面）
+        display_df = display_df.sort_values("截止日期", ascending=False)
+
+        # 展示表格（hide_index 去掉行号，use_container_width 撑满宽度）
+        st.dataframe(
+            display_df, 
+            use_container_width=True, 
+            hide_index=True
+        )
+        st.caption(f"共 {len(display_df)} 条已完成任务")
