@@ -50,42 +50,62 @@ if not pending:
 for s in pending:
     # 用边框容器包裹，配合 CSS 变成白底带阴影的卡片
     with st.container(border=True):
+        # 布局分为两行：第一行是信息+按钮，第二行是标签
         c1, c2, c3 = st.columns([7, 1.5, 1.5])
         
         with c1:
-            # 类别与备注
+            # 第一行：类别 + 空格 + 备注 + 截止日期（在最右侧）
             title_html = f"<span style='font-size: 1.1em; font-weight: 600; color: #1E293B;'>{s['category']}</span>"
+            
+            # 如果有备注，加一个空格分隔
             if s['note']:
-                title_html += f" <span style='color: #64748B; font-size: 0.95em;'>{s['note']}</span>"
+                title_html += f" &nbsp; <span style='color: #475569; font-size: 0.95em;'>{s['note']}</span>"
             
-            # 时间与逾期状态
+            # 截止日期
             date_str = datetime.fromisoformat(s['deadline_date']).strftime("%Y-%m-%d")
-            meta_html = f"<div style='color: #94A3B8; font-size: 0.85em; margin-top: 4px;'>截止: {date_str}"
-            if s["status"] == "overdue":
-                meta_html += f" <span style='color:#EF4444; font-weight:500;'>· 逾期 {s['overdue_days']} 天</span>"
-            meta_html += "</div>"
+            date_html = f"<span style='color: #94A3B8; font-size: 0.85em; margin-left: 12px;'>截止: {date_str}</span>"
             
-            # 标签
-            tags_html = "<div style='margin-top: 6px;'>"
+            # 逾期状态
+            if s["status"] == "overdue":
+                date_html += f" <span style='color:#EF4444; font-size: 0.85em; font-weight:500; margin-left: 8px;'>· 逾期 {s['overdue_days']} 天</span>"
+            
+            # 第二行：标签 (给上面加一点 margin-top 隔开)
+            tags_html = "<div style='margin-top: 8px;'>"
             for tid in s["tag_ids"]:
                 if tid in tag_map:
                     tags_html += f"<span class='custom-tag'>{tag_map[tid]}</span>"
             tags_html += "</div>"
             
-            st.markdown(f"{title_html}{meta_html}{tags_html}", unsafe_allow_html=True)
+            # 合并渲染
+            st.markdown(f"<div>{title_html}{date_html}</div>{tags_html}", unsafe_allow_html=True)
 
         with c2:
+            # 自定义绿色主按钮样式
+            green_btn_css = """
+            <style>
+            div[data-testid="stButton"] > button[kind="primary"] {
+                background-color: #10B981 !important;
+                border-color: #10B981 !important;
+            }
+            div[data-testid="stButton"] > button[kind="primary"]:hover {
+                background-color: #059669 !important;
+                border-color: #059669 !important;
+            }
+            </style>
+            """
+            st.markdown(green_btn_css, unsafe_allow_html=True)
+            
             if st.button("完成", key=f"done_{s['id']}", type="primary", use_container_width=True):
                 update(s["id"], user.id, {"status": "completed"})
                 st.rerun()
+                
         with c3:
             if st.button("删除", key=f"del_{s['id']}", use_container_width=True):
                 delete(s["id"], user.id)
                 st.rerun()
 
         # 折叠的编辑区
-        with st.expander("✏️ 展开编辑"):
-            # ...(保留你原来的编辑表单代码，不需要动)...
+        with st.expander("✏️ 编辑"):
             is_stage = bool(s.get("start_time") and s.get("end_time"))
             current_type = "阶段型" if is_stage else "ddl型"
 
