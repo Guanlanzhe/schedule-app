@@ -66,15 +66,15 @@ for s in pending:
             title_html = f"<div style='font-size: 1.05rem; font-weight: 600; color: #1E293B; line-height: 1.4;'>"
             title_html += f"{s['category']}"
             
-            # 【修复空格】：加一个 &nbsp;&nbsp; 增加间距
+            # 【核心修复】：使用 margin-left 强行拉开 15px 距离
             if s['note']:
-                title_html += f"&nbsp;&nbsp;<span style='font-weight: 400; color: #475569;'>{s['note']}</span>"
+                title_html += f"<span style='font-weight: 400; color: #475569; margin-left: 15px;'>{s['note']}</span>"
             
-            # 标签内联
+            # 标签内联（同样使用 margin-left 拉开）
             if s["tag_ids"]:
                 for tid in s["tag_ids"]:
                     if tid in tag_map:
-                        title_html += f" <span style='font-size: 0.75rem; color: #2563EB; background-color: #EFF6FF; padding: 2px 6px; border-radius: 4px; vertical-align: middle; font-weight: 400; margin-left: 6px;'>{tag_map[tid]}</span>"
+                        title_html += f"<span style='font-size: 0.75rem; color: #2563EB; background-color: #EFF6FF; padding: 2px 6px; border-radius: 4px; vertical-align: middle; font-weight: 400; margin-left: 12px;'>{tag_map[tid]}</span>"
             title_html += "</div>"
             
             # 副标题：时间与逾期状态
