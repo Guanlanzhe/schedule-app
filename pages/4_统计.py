@@ -145,15 +145,13 @@ else:
             "deadline_date", "category", "note", "prep_start", "tag_ids"
         ]].copy()
         
-        # 解析学科标签：只挑出 group_name == "学科" 的标签
+        # 建立快速查询字典，提高运行速度
+        tag_dict = {t["id"]: (t["name"], t["group_name"]) for t in all_tags}
+        
         def get_subject(tag_ids):
             if not tag_ids:
                 return ""
-            subjects = []
-            for tid in tag_ids:
-                t = next((t for t in all_tags if t["id"] == tid), None)
-                if t and t["group_name"] == "学科":
-                    subjects.append(t["name"])
+            subjects = [tag_dict[tid][0] for tid in tag_ids if tid in tag_dict and tag_dict[tid][1] == "学科"]
             return "、".join(subjects)
 
         display_df["学科"] = display_df["tag_ids"].apply(get_subject)
