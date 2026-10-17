@@ -14,18 +14,14 @@ refresh_overdue(user.id)
 st.title("待办事项")
 st.write("")
 
-# 注入 CSS，专门消除列布局的默认垂直对齐空白
+# 局部 CSS：只作用于当前页面，让右侧按钮在高度上和左侧文本完美对齐
 st.markdown("""
 <style>
-    /* 让列容器内的元素垂直居中，并去掉所有默认 margin */
+    /* 强制按钮所在列垂直居中 */
     div[data-testid="column"] {
         display: flex;
         flex-direction: column;
         justify-content: center;
-    }
-    /* 消除卡片内部多余空白 */
-    div[data-testid="stVerticalBlock"] > div {
-        padding-bottom: 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -63,20 +59,22 @@ if not pending:
 
 for s in pending:
     with st.container(border=True):
-        c_info, c_actions = st.columns([7, 3])
+        c_info, c_actions = st.columns([7.5, 2.5])
         
         with c_info:
             # 动态生成左侧 HTML 信息
             title_html = f"<div style='font-size: 1.05rem; font-weight: 600; color: #1E293B; line-height: 1.4;'>"
             title_html += f"{s['category']}"
+            
+            # 【修复空格】：加一个 &nbsp;&nbsp; 增加间距
             if s['note']:
-                title_html += f" <span style='font-weight: 400; color: #475569;'>{s['note']}</span>"
+                title_html += f"&nbsp;&nbsp;<span style='font-weight: 400; color: #475569;'>{s['note']}</span>"
             
             # 标签内联
             if s["tag_ids"]:
                 for tid in s["tag_ids"]:
                     if tid in tag_map:
-                        title_html += f" <span style='font-size: 0.75rem; color: #2563EB; background-color: #EFF6FF; padding: 2px 6px; border-radius: 4px; vertical-align: middle; font-weight: 400; margin-left: 4px;'>{tag_map[tid]}</span>"
+                        title_html += f" <span style='font-size: 0.75rem; color: #2563EB; background-color: #EFF6FF; padding: 2px 6px; border-radius: 4px; vertical-align: middle; font-weight: 400; margin-left: 6px;'>{tag_map[tid]}</span>"
             title_html += "</div>"
             
             # 副标题：时间与逾期状态
