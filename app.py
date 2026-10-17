@@ -23,6 +23,7 @@ with st.sidebar:
         st.rerun()
 
 st.title("概览")
+st.write("")
 
 refresh_overdue(user.id)
 pending = fetch_pending(user.id)
@@ -38,36 +39,55 @@ for s in pending:
 ddl_items.sort(key=lambda x: x["_days_left"])
 stage_items.sort(key=lambda x: x["_days_left"])
 
-def render_item(s):
-    is_overdue = s["_days_left"] < 0
-    color = "#EF4444" if is_overdue else "#10B981"
-    status_text = f"逾期 {-s['_days_left']} 天" if is_overdue else ("今天截止" if s["_days_left"] == 0 else f"还有 {s['_days_left']} 天")
+# 生成卡片内列表的 HTML
+def build_list_html(items, empty_text="暂无任务"):
+    if not items:
+        return f"<div style='color: #94A3B8; font-size: 0.95rem; padding: 10px 0;'>{empty_text}</div>"
     
-    st.markdown(f"""
-    <div style='display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #F1F5F9;'>
-        <div style='width: 6px; height: 6px; border-radius: 50%; background-color: {color}; margin-right: 12px;'></div>
-        <div style='flex-grow: 1;'>
-            <div style='font-weight: 600; color: #1E293B; font-size: 0.95rem;'>{s['category']} <span style='font-weight: 400; color: #64748B;'>{s['note'] or ''}</span></div>
+    html = ""
+    for i, s in enumerate(items[:6]): # 最多显示 6 个
+        is_overdue = s["_days_left"] < 0
+        color = "#EF4444" if is_overdue else "#10B981"
+        status_text = f"逾期 {-s['_days_left']} 天" if is_overdue else ("今天截止" if s["_days_left"] == 0 else f"还有 {s['_days_left']} 天")
+        
+        # 如果不是最后一行，加底部分割线
+        border_style = "border-bottom: 1px solid #F1F5F9; padding-bottom: 12px; margin-bottom: 12px;" if i < len(items[:6]) - 1 else ""
+        
+        html += f"""
+        <div style='display: flex; align-items: flex-start; {border_style}'>
+            <div style='width: 6px; height: 6px; border-radius: 50%; background-color: {color}; margin-top: 8px; margin-right: 12px; flex-shrink: 0;'></div>
+            <div style='flex-grow: 1; min-width: 0;'>
+                <div style='font-weight: 600; color: #1E293B; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'>
+                    {s['category']} <span style='font-weight: 400; color: #64748B;'>{s['note'] or ''}</span>
+                </div>
+            </div>
+            <div style='color: {color}; font-size: 0.85rem; font-weight: 500; white-space: nowrap; margin-left: 10px; margin-top: 2px;'>
+                {status_text}
+            </div>
         </div>
-        <div style='color: {color}; font-size: 0.85rem; font-weight: 500;'>{status_text}</div>
-    </div>
-    """, unsafe_allow_html=True)
+        """
+    return html
 
-st.write("")
+
 col1, col2 = st.columns(2)
 
 with col1:
-    with st.container(border=True):
-        st.markdown("### 📌 临近 DDL")
-        if not ddl_items:
-            st.caption("暂无任务")
-        for s in ddl_items[:5]: # 最多显示5个
-            render_item(s)
+    # 外层使用 HTML 包裹卡片，避免 Streamlit 边框计算错误
+    st.markdown(f"""
+    <div style='background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>
+        <h3 style='margin-top: 0; margin-bottom: 1.2rem; font-size: 1.15rem; font-weight: 600; color: #1E293B; display: flex; align-items: center; gap: 8px;'>
+            <span style='font-size: 1.3rem;'>📌</span> 临近 DDL
+        </h3>
+        {build_list_html(ddl_items, "暂无临近 DDL")}
+    </div>
+    """, unsafe_allow_html=True)
 
 with col2:
-    with st.container(border=True):
-        st.markdown("### ⏳ 阶段安排")
-        if not stage_items:
-            st.caption("暂无任务")
-        for s in stage_items[:5]:
-            render_item(s)
+    st.markdown(f"""
+    <div style='background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>
+        <h3 style='margin-top: 0; margin-bottom: 1.2rem; font-size: 1.15rem; font-weight: 600; color: #1E293B; display: flex; align-items: center; gap: 8px;'>
+            <span style='font-size: 1.3rem;'>⏳</span> 阶段安排
+        </h3>
+        {build_list_html(stage_items, "暂无阶段安排")}
+    </div>
+    """, unsafe_allow_html=True)
