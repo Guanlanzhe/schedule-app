@@ -134,35 +134,51 @@ else:
         default=all_categories
     )
 
-    # 如果用户清空了筛选，给个提示，否则展示数据
     if not selected_cats:
         st.warning("请至少选择一个类别")
     else:
         # 应用筛选
         filtered_df = completed_df[completed_df["category"].isin(selected_cats)]
         
-        # 整理要展示的列，并重命名成中文
+        # 提取要展示的列
         display_df = filtered_df[[
-            "deadline_date", "category", "note", "prep_start"
+            "deadline_date", "category", "note", "prep_start", "tag_ids"
         ]].copy()
         
-        # 格式化日期，去掉时间部分
+        # 解析学科标签：从 tag_ids 里找出属于“学科类”的标签名
+        def get_subject(tag_ids):
+            if not tag_ids:
+                return ""
+            subjects = []
+            for tid in tag_ids:
+                t = next((t for t in all_tags if t["id"] == tid), None)
+                if t and t["group_name"] == "学科类":
+                    subjects.append(t["name"])
+            return "、".join(subjects)
+
+        display_df["学科"] = display_df["tag_ids"].apply(get_subject)
+        
+        # 格式化日期
         display_df["deadline_date"] = pd.to_datetime(display_df["deadline_date"]).dt.strftime("%Y-%m-%d")
         display_df["prep_start"] = pd.to_datetime(display_df["prep_start"]).dt.strftime("%Y-%m-%d")
-        
-        # 如果原字段是空的，转出来的会是字符串 'NaT'，把它替换成空字符串
         display_df["prep_start"] = display_df["prep_start"].replace("NaT", "")
         display_df["note"] = display_df["note"].fillna("")
         
-        # 改名
-        display_df.columns = ["截止日期", "类别", "备注", "开始准备日期"]
+        # 调整列顺序并重命名
+        display_df = display_df[["deadline_date", "category", "学科", "note", "prep_start"]]
+        display_df.columns = ["截止日期", "类别", "学科", "备注", "开始准备日期"]
         
-        # 按截止日期倒序排列（最近完成的在上面）
+        # 按截止日期倒序排列
         display_df = display_df.sort_values("截止日期", ascending=False)
 
-        # 展示表格（hide_index 去掉行号，use_container_width 撑满宽度）
+        # 使用 Pandas Styler 设置居中对齐
+        styled_df = display_df.style.set_properties(**{
+            'text-align': 'center'
+        })
+
+        # 展示表格
         st.dataframe(
-            display_df, 
+            styled_df, 
             use_container_width=True, 
             hide_index=True
         )
