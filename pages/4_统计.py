@@ -145,14 +145,14 @@ else:
             "deadline_date", "category", "note", "prep_start", "tag_ids"
         ]].copy()
         
-        # 解析学科标签：从 tag_ids 里找出属于“学科类”的标签名
+        # 解析学科标签：只挑出 group_name == "学科" 的标签
         def get_subject(tag_ids):
             if not tag_ids:
                 return ""
             subjects = []
             for tid in tag_ids:
                 t = next((t for t in all_tags if t["id"] == tid), None)
-                if t and t["group_name"] == "学科类":
+                if t and t["group_name"] == "学科":
                     subjects.append(t["name"])
             return "、".join(subjects)
 
@@ -171,15 +171,17 @@ else:
         # 按截止日期倒序排列
         display_df = display_df.sort_values("截止日期", ascending=False)
 
-        # 使用 Pandas Styler 设置居中对齐
-        styled_df = display_df.style.set_properties(**{
-            'text-align': 'center'
-        })
-
-        # 展示表格
+        # 构造 column_config 强制居中
+        centered_config = {
+            col: st.column_config.TextColumn(col, alignment="center") 
+            for col in ["截止日期", "类别", "学科", "备注", "开始准备日期"]
+        }
+        
+        # 注意：因为日期之前已经转成了字符串，所以用 TextColumn 即可
         st.dataframe(
-            styled_df, 
+            display_df, 
             use_container_width=True, 
-            hide_index=True
+            hide_index=True,
+            column_config=centered_config
         )
         st.caption(f"共 {len(display_df)} 条已完成任务")
