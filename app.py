@@ -44,7 +44,9 @@ def build_list_html(items, empty_text="暂无任务"):
     if not items:
         return f"<div style='color: #94A3B8; font-size: 0.95rem; padding: 10px 0;'>{empty_text}</div>"
     
-    html = ""
+    # 外层套一个 div，确保 Markdown 能正确识别为 HTML 块
+    html = "<div style='display: flex; flex-direction: column;'>"
+    
     for i, s in enumerate(items[:6]): # 最多显示 6 个
         is_overdue = s["_days_left"] < 0
         color = "#EF4444" if is_overdue else "#10B981"
@@ -53,41 +55,38 @@ def build_list_html(items, empty_text="暂无任务"):
         # 如果不是最后一行，加底部分割线
         border_style = "border-bottom: 1px solid #F1F5F9; padding-bottom: 12px; margin-bottom: 12px;" if i < len(items[:6]) - 1 else ""
         
-        html += f"""
-        <div style='display: flex; align-items: flex-start; {border_style}'>
-            <div style='width: 6px; height: 6px; border-radius: 50%; background-color: {color}; margin-top: 8px; margin-right: 12px; flex-shrink: 0;'></div>
-            <div style='flex-grow: 1; min-width: 0;'>
-                <div style='font-weight: 600; color: #1E293B; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'>
-                    {s['category']} <span style='font-weight: 400; color: #64748B;'>{s['note'] or ''}</span>
-                </div>
-            </div>
-            <div style='color: {color}; font-size: 0.85rem; font-weight: 500; white-space: nowrap; margin-left: 10px; margin-top: 2px;'>
-                {status_text}
-            </div>
-        </div>
-        """
+        # 注意：这里全部去掉缩进，紧贴着左边写
+        html += f"""<div style='display: flex; align-items: flex-start; {border_style}'>
+<div style='width: 6px; height: 6px; border-radius: 50%; background-color: {color}; margin-top: 8px; margin-right: 12px; flex-shrink: 0;'></div>
+<div style='flex-grow: 1; min-width: 0;'>
+<div style='font-weight: 600; color: #1E293B; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'>
+{s['category']} <span style='font-weight: 400; color: #64748B;'>{s['note'] or ''}</span>
+</div>
+</div>
+<div style='color: {color}; font-size: 0.85rem; font-weight: 500; white-space: nowrap; margin-left: 10px; margin-top: 2px;'>
+{status_text}
+</div>
+</div>"""
+    
+    html += "</div>"
     return html
 
 
 col1, col2 = st.columns(2)
 
 with col1:
-    # 外层使用 HTML 包裹卡片，避免 Streamlit 边框计算错误
-    st.markdown(f"""
-    <div style='background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>
-        <h3 style='margin-top: 0; margin-bottom: 1.2rem; font-size: 1.15rem; font-weight: 600; color: #1E293B; display: flex; align-items: center; gap: 8px;'>
-            <span style='font-size: 1.3rem;'>📌</span> 临近 DDL
-        </h3>
-        {build_list_html(ddl_items, "暂无临近 DDL")}
-    </div>
-    """, unsafe_allow_html=True)
+    # 外层使用 HTML 包裹卡片，注意这里也去掉了缩进
+    st.markdown(f"""<div style='background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>
+<h3 style='margin-top: 0; margin-bottom: 1.2rem; font-size: 1.15rem; font-weight: 600; color: #1E293B; display: flex; align-items: center; gap: 8px;'>
+<span style='font-size: 1.3rem;'>📌</span> 临近 DDL
+</h3>
+{build_list_html(ddl_items, "暂无临近 DDL")}
+</div>""", unsafe_allow_html=True)
 
 with col2:
-    st.markdown(f"""
-    <div style='background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>
-        <h3 style='margin-top: 0; margin-bottom: 1.2rem; font-size: 1.15rem; font-weight: 600; color: #1E293B; display: flex; align-items: center; gap: 8px;'>
-            <span style='font-size: 1.3rem;'>⏳</span> 阶段安排
-        </h3>
-        {build_list_html(stage_items, "暂无阶段安排")}
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div style='background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>
+<h3 style='margin-top: 0; margin-bottom: 1.2rem; font-size: 1.15rem; font-weight: 600; color: #1E293B; display: flex; align-items: center; gap: 8px;'>
+<span style='font-size: 1.3rem;'>⏳</span> 阶段安排
+</h3>
+{build_list_html(stage_items, "暂无阶段安排")}
+</div>""", unsafe_allow_html=True)
