@@ -8,6 +8,16 @@ from src.schedule.tags import fetch_tags
 load_style()
 user = require_login()
 
+# ========== 注入 CSS：强制表格表头居中 ==========
+st.markdown("""
+<style>
+    /* 强制 dataframe 表头文字居中 */
+    div[data-testid="stDataFrame"] div[role="columnheader"] {
+        justify-content: center !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("数据统计")
 st.write("")
 
