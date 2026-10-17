@@ -96,20 +96,37 @@ melted = grouped.melt(
     value_name="数量"
 )
 
-chart = alt.Chart(melted).mark_bar().encode(
-    x=alt.X("日期:N", title="日期", sort=None, axis=alt.Axis(labelAngle=-45)),
+chart = alt.Chart(melted).mark_bar(
+    cornerRadiusTopLeft=4, 
+    cornerRadiusTopRight=4
+).encode(
+    x=alt.X("日期:N", title=None, sort=None, axis=alt.Axis(labelAngle=0, labelPadding=10, domain=False, ticks=False)),
     xOffset="类型:N",
-    y=alt.Y("数量:Q", title="数量"),
+    y=alt.Y("数量:Q", title=None, axis=alt.Axis(grid=True, gridColor="#F1F5F9", domain=False, ticks=False)),
     color=alt.Color(
         "类型:N",
         scale=alt.Scale(
             domain=["截止数量", "完成数量"],
-            range=["#7EB6E8", "#1F4E79"]
+            range=["#93C5FD", "#2563EB"]   # 高级浅蓝 / 高级深蓝
         ),
-        legend=alt.Legend(title=None)
+        legend=alt.Legend(
+            title=None, 
+            orient="top", 
+            direction="horizontal",
+            symbolType="circle",
+            symbolSize=100
+        )
     ),
     tooltip=["日期:N", "类型:N", "数量:Q"]
-).properties(height=400)
+).properties(
+    height=400
+).configure_view(
+    strokeOpacity=0
+).configure_axis(
+    labelFont="sans-serif",
+    labelColor="#64748B",
+    labelFontSize=12
+)
 
 st.altair_chart(chart, use_container_width=True)
 
