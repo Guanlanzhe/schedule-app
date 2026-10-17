@@ -14,7 +14,7 @@ def load_style():
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
         .stApp {
-            background-color: #F8FAFC; /* 极浅的灰蓝色背景 */
+            background-color: #F8FAFC;
         }
         
         /* 2. 隐藏默认冗余元素 */
@@ -22,7 +22,7 @@ def load_style():
         footer {visibility: hidden;}
         header {visibility: hidden;}
         
-        /* 3. 卡片容器 (包裹所有内容的带阴影白板) */
+        /* 3. 卡片容器 */
         div[data-testid="stVerticalBlockBorderWrapper"] {
             background-color: #FFFFFF !important;
             border-radius: 12px !important;
@@ -32,7 +32,7 @@ def load_style():
             margin-bottom: 1rem !important;
         }
         
-        /* 4. 输入框美化：去掉生硬边框，改用浅灰背景 */
+        /* 4. 输入框美化 */
         div[data-baseweb="input"], div[data-baseweb="select"], div[data-baseweb="textarea"] {
             background-color: #F1F5F9 !important;
             border-radius: 8px !important;
@@ -62,7 +62,7 @@ def load_style():
             color: #3B82F6 !important;
         }
         
-        /* 主按钮 (调用 type="primary" 生效) */
+        /* 主按钮 */
         [data-testid="baseButton-primary"] {
             background-color: #2563EB !important;
             color: white !important;
@@ -72,18 +72,6 @@ def load_style():
             background-color: #1D4ED8 !important;
             color: white !important;
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
-        }
-        
-        /* 6. 标签药丸 */
-        .custom-tag {
-            display: inline-block;
-            background-color: #EFF6FF;
-            color: #2563EB;
-            padding: 2px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            margin-right: 6px;
         }
         
         /* 7. 文本排版 */
