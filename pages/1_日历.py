@@ -10,27 +10,33 @@ load_style()
 user = require_login()
 refresh_overdue(user.id)
 
-st.title("📅 日程日历")
+st.title("日程日历")
+st.write("") # 留出一点空白，呼吸感
 
 all_tags = fetch_tags(user.id)
 tag_map = {t["id"]: t["name"] for t in all_tags}
 
-# 标签筛选
-filter_ids = []
-if all_tags:
-    groups = {}
-    for t in all_tags:
-        groups.setdefault(t["group_name"], []).append(t)
-    for group_name, items in groups.items():
-        chosen = st.multiselect(
-            f"按{group_name}筛选",
-            options=[t["id"] for t in items],
-            format_func=lambda tid: next(
-                t["name"] for t in items if t["id"] == tid
-            ),
-            key=f"cal_filter_{group_name}",
-        )
-        filter_ids.extend(chosen)
+# 使用折叠框收纳筛选器
+with st.expander("🔍 筛选标签", expanded=False):
+    filter_ids = []
+    if all_tags:
+        groups = {}
+        for t in all_tags:
+            groups.setdefault(t["group_name"], []).append(t)
+            
+        # 把标签按多列排布，不会显得太挤
+        cols = st.columns(len(groups) if len(groups) > 0 else 1)
+        for i, (group_name, items) in enumerate(groups.items()):
+            with cols[i % len(groups)]:
+                chosen = st.multiselect(
+                    f"{group_name}",
+                    options=[t["id"] for t in items],
+                    format_func=lambda tid: next(
+                        t["name"] for t in items if t["id"] == tid
+                    ),
+                    key=f"cal_filter_{group_name}",
+                )
+                filter_ids.extend(chosen)
 
 schedules = fetch_all(user.id)
 if filter_ids:
@@ -38,6 +44,7 @@ if filter_ids:
 
 events = to_events(schedules)
 
+# 日历配置
 options = {
     "initialView": "dayGridMonth",
     "headerToolbar": {
@@ -56,4 +63,5 @@ options = {
     "selectable": False,
 }
 
+# 渲染日历
 calendar(events=events, options=options, key="cal")
