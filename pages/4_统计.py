@@ -179,13 +179,11 @@ st.write("")
 with st.container(border=True):
     st.markdown("### 已完成任务记录")
     
-    # 从原始数据中筛出已完成的
     completed_df = df[df["status"] == "completed"].copy()
 
     if completed_df.empty:
         st.caption("暂无已完成的任务")
     else:
-        # 类别筛选器放入折叠框
         with st.expander("🔍 筛选类别", expanded=False):
             all_categories = completed_df["category"].unique().tolist()
             selected_cats = st.multiselect(
@@ -219,41 +217,34 @@ with st.container(border=True):
             display_df.columns = ["截止日期", "类别", "学科", "备注", "开始准备日期"]
             display_df = display_df.sort_values("截止日期", ascending=False)
 
-            # 手动构建 HTML 表格，实现完美居中与高级质感
-            html_table = """
-            <div style='overflow-x: auto;'>
-                <table style='width: 100%; border-collapse: collapse; text-align: center; font-size: 0.9rem; color: #334155;'>
-                    <thead>
-                        <tr style='background-color: #F8FAFC; border-bottom: 2px solid #E2E8F0;'>
-                            <th style='padding: 12px; font-weight: 600; color: #475569;'>截止日期</th>
-                            <th style='padding: 12px; font-weight: 600; color: #475569;'>类别</th>
-                            <th style='padding: 12px; font-weight: 600; color: #475569;'>学科</th>
-                            <th style='padding: 12px; font-weight: 600; color: #475569;'>备注</th>
-                            <th style='padding: 12px; font-weight: 600; color: #475569;'>开始准备日期</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            """
+            # 注意：下面的 HTML 所有标签全部顶格，绝对不能有缩进
+            html_table = """<div style='overflow-x: auto;'>
+<table style='width: 100%; border-collapse: collapse; text-align: center; font-size: 0.9rem; color: #334155;'>
+<thead>
+<tr style='background-color: #F8FAFC; border-bottom: 2px solid #E2E8F0;'>
+<th style='padding: 12px; font-weight: 600; color: #475569;'>截止日期</th>
+<th style='padding: 12px; font-weight: 600; color: #475569;'>类别</th>
+<th style='padding: 12px; font-weight: 600; color: #475569;'>学科</th>
+<th style='padding: 12px; font-weight: 600; color: #475569;'>备注</th>
+<th style='padding: 12px; font-weight: 600; color: #475569;'>开始准备日期</th>
+</tr>
+</thead>
+<tbody>"""
             
-            for index, row in display_df.iterrows():
-                # 隔行变色，增加阅读体验
-                bg_color = "#FFFFFF" if index % 2 == 0 else "#F8FAFC"
-                html_table += f"""
-                        <tr style='background-color: {bg_color}; border-bottom: 1px solid #E2E8F0;'>
-                            <td style='padding: 10px;'>{row['截止日期']}</td>
-                            <td style='padding: 10px;'>{row['类别']}</td>
-                            <td style='padding: 10px;'>{row['学科']}</td>
-                            <td style='padding: 10px;'>{row['备注']}</td>
-                            <td style='padding: 10px;'>{row['开始准备日期']}</td>
-                        </tr>
-                """
+            # 使用 enumerate 生成准确的行号用于隔行变色
+            for i, (_, row) in enumerate(display_df.iterrows()):
+                bg_color = "#FFFFFF" if i % 2 == 0 else "#F8FAFC"
+                html_table += f"""<tr style='background-color: {bg_color}; border-bottom: 1px solid #E2E8F0;'>
+<td style='padding: 10px;'>{row['截止日期']}</td>
+<td style='padding: 10px;'>{row['类别']}</td>
+<td style='padding: 10px;'>{row['学科']}</td>
+<td style='padding: 10px;'>{row['备注']}</td>
+<td style='padding: 10px;'>{row['开始准备日期']}</td>
+</tr>"""
             
-            html_table += """
-                    </tbody>
-                </table>
-            </div>
-            """
+            html_table += """</tbody>
+</table>
+</div>"""
             
-            # 渲染 HTML 表格
             st.markdown(html_table, unsafe_allow_html=True)
             st.caption(f"共 {len(display_df)} 条记录")
