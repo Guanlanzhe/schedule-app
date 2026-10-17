@@ -1,10 +1,10 @@
 from datetime import datetime, date
 import streamlit as st
-from src.ui import load_style
+from src.ui import load_style, show_login_form
 from src.supabase_client import logout
-from src.ui import show_login_form
 from src.schedule.db import fetch_pending
 from src.schedule.overdue import refresh_overdue
+from src.time_utils import today_bj  # 引入你写好的北京时间函数
 
 load_style()
 
@@ -42,7 +42,8 @@ for s in pending:
     else:
         target = datetime.fromisoformat(s["deadline_date"]).date()
 
-    days_left = (target - date.today()).days
+    # 使用北京时间的“今天”来计算剩余天数
+    days_left = (target - today_bj()).days
     s["_days_left"] = days_left
 
     if is_stage:
@@ -69,26 +70,32 @@ def render_item(s: dict):
     """渲染单条提醒"""
     is_overdue = s["status"] == "overdue" or s["_days_left"] < 0
     color = "🔴" if is_overdue else "🟢"
-    st.write(
+    # 使用 markdown 渲染，增加一点间距和加粗
+    st.markdown(
         f"{color} **{s['category']}** | {s['note'] or '（无备注）'}  \n"
-        f"&nbsp;&nbsp;&nbsp;&nbsp;{format_days(s['_days_left'])}"
+        f"&nbsp;&nbsp;&nbsp;&nbsp;<span style='color:gray; font-size:0.9em;'>{format_days(s['_days_left'])}</span>", 
+        unsafe_allow_html=True
     )
 
 
 col1, col2 = st.columns(2)
 
+# 左列：ddl 提醒（加上边框容器）
 with col1:
-    st.markdown("### 📌 ddl 提醒")
-    if not ddl_items:
-        st.caption("暂无 ddl 型日程")
-    else:
-        for s in ddl_items:
-            render_item(s)
+    with st.container(border=True):
+        st.markdown("### 📌 ddl 提醒")
+        if not ddl_items:
+            st.caption("暂无 ddl 型日程")
+        else:
+            for s in ddl_items:
+                render_item(s)
 
+# 右列：阶段型日程提醒（加上边框容器）
 with col2:
-    st.markdown("### ⏳ 阶段型日程提醒")
-    if not stage_items:
-        st.caption("暂无阶段型日程")
-    else:
-        for s in stage_items:
-            render_item(s)
+    with st.container(border=True):
+        st.markdown("### ⏳ 阶段型日程提醒")
+        if not stage_items:
+            st.caption("暂无阶段型日程")
+        else:
+            for s in stage_items:
+                render_item(s)
