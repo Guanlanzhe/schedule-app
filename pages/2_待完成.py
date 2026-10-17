@@ -48,36 +48,44 @@ if not pending:
 
 # 渲染待完成列表
 for s in pending:
-    # 用边框容器包裹，看起来像卡片
+    # 用边框容器包裹，配合 CSS 变成白底带阴影的卡片
     with st.container(border=True):
-        # 调整列宽比例，给按钮留出足够的空间显示中文
-        c1, c2, c3 = st.columns([6, 1.2, 1.2])
+        c1, c2, c3 = st.columns([7, 1.5, 1.5])
+        
         with c1:
-            tag = ""
+            # 类别与备注
+            title_html = f"<span style='font-size: 1.1em; font-weight: 600; color: #1E293B;'>{s['category']}</span>"
+            if s['note']:
+                title_html += f" <span style='color: #64748B; font-size: 0.95em;'>{s['note']}</span>"
+            
+            # 时间与逾期状态
+            date_str = datetime.fromisoformat(s['deadline_date']).strftime("%Y-%m-%d")
+            meta_html = f"<div style='color: #94A3B8; font-size: 0.85em; margin-top: 4px;'>截止: {date_str}"
             if s["status"] == "overdue":
-                tag = f"<span style='color:red;'>⏰ 逾期 {s['overdue_days']} 天</span>"
-            tag_names = " ".join(
-                f"<span style='background-color:#f0f2f6; padding:2px 6px; border-radius:4px; font-size:0.8em;'>{tag_map[tid]}</span>" 
-                for tid in s["tag_ids"] if tid in tag_map
-            )
-            st.markdown(
-                f"**{s['deadline_date']}** | {s['category']} | "
-                f"{s['note'] or ''} {tag} <br>{tag_names}", 
-                unsafe_allow_html=True
-            )
+                meta_html += f" <span style='color:#EF4444; font-weight:500;'>· 逾期 {s['overdue_days']} 天</span>"
+            meta_html += "</div>"
+            
+            # 标签
+            tags_html = "<div style='margin-top: 6px;'>"
+            for tid in s["tag_ids"]:
+                if tid in tag_map:
+                    tags_html += f"<span class='custom-tag'>{tag_map[tid]}</span>"
+            tags_html += "</div>"
+            
+            st.markdown(f"{title_html}{meta_html}{tags_html}", unsafe_allow_html=True)
+
         with c2:
-            # 恢复中文“完成”
-            if st.button("完成", key=f"done_{s['id']}", help="标记为完成", use_container_width=True):
+            if st.button("完成", key=f"done_{s['id']}", type="primary", use_container_width=True):
                 update(s["id"], user.id, {"status": "completed"})
                 st.rerun()
         with c3:
-            # 恢复中文“删除”
-            if st.button("删除", key=f"del_{s['id']}", help="永久删除", use_container_width=True):
+            if st.button("删除", key=f"del_{s['id']}", use_container_width=True):
                 delete(s["id"], user.id)
                 st.rerun()
 
-        # 编辑区
-        with st.expander("✏️ 编辑"):
+        # 折叠的编辑区
+        with st.expander("✏️ 展开编辑"):
+            # ...(保留你原来的编辑表单代码，不需要动)...
             is_stage = bool(s.get("start_time") and s.get("end_time"))
             current_type = "阶段型" if is_stage else "ddl型"
 
@@ -108,7 +116,7 @@ for s in pending:
                 new_prep = st.date_input("开始准备日期（可选）", value=prep_val if prep_val else today_bj())
                 new_tags = st.multiselect("标签", options=list(tag_map.keys()), default=s["tag_ids"], format_func=lambda tid: tag_map[tid])
                 
-                saved = st.form_submit_button("保存修改")
+                saved = st.form_submit_button("保存修改", type="primary")
 
             if saved:
                 if edit_type == "阶段型" and new_end <= new_start:
