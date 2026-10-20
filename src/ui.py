@@ -9,9 +9,10 @@ def load_style():
     
     st.markdown("""
         <style>
-        /* 1. 全局字体与背景 */
+        /* 1. 全局字体与背景：英文 Times New Roman，中文宋体 */
         html, body, [class*="css"] {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Times New Roman', SimSun, 'Songti SC', STSong, serif !important;
+            line-height: 1.6 !important; /* 宋体需要稍微大一点的行高才好看 */
         }
         .stApp {
             background-color: #F8FAFC;
@@ -47,6 +48,7 @@ def load_style():
         input, textarea {
             background-color: transparent !important;
             border: none !important;
+            font-family: 'Times New Roman', SimSun, serif !important; /* 输入框也同步 */
         }
         
         /* 5. 按钮美化 */
@@ -56,6 +58,7 @@ def load_style():
             transition: all 0.2s !important;
             border: 1px solid #E2E8F0 !important;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+            font-family: 'Times New Roman', SimSun, serif !important; /* 按钮同步 */
         }
         .stButton > button:hover {
             border-color: #3B82F6 !important;
@@ -75,8 +78,20 @@ def load_style():
         }
         
         /* 7. 文本排版 */
-        h1 { font-size: 2rem !important; font-weight: 700 !important; color: #1E293B !important; letter-spacing: -0.5px; padding-bottom: 0rem !important;}
-        h2, h3 { font-weight: 600 !important; color: #334155 !important; padding-bottom: 0.5rem !important;}
+        h1 { 
+            font-size: 2rem !important; 
+            font-weight: 700 !important; 
+            color: #1E293B !important; 
+            letter-spacing: -0.5px; 
+            padding-bottom: 0rem !important;
+            font-family: 'Times New Roman', SimSun, serif !important;
+        }
+        h2, h3 { 
+            font-weight: 600 !important; 
+            color: #334155 !important; 
+            padding-bottom: 0.5rem !important;
+            font-family: 'Times New Roman', SimSun, serif !important;
+        }
         
         /* 8. 修复日期选择器（日历）被全局样式破坏的问题 */
         div[data-baseweb="calendar"] button {
@@ -90,6 +105,7 @@ def load_style():
             color: #1E293B !important;
             visibility: visible !important;
             display: block !important;
+            font-family: 'Times New Roman', SimSun, serif !important;
         }
         div[data-baseweb="popover"] {
             z-index: 9999 !important;
