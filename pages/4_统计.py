@@ -175,6 +175,35 @@ with st.container(border=True):
 
 st.write("")
 
+st.write("")
+
+# ========== 已完成分类占比 ==========
+completed_only_df = df[df["status"] == "completed"]
+completed_count = len(completed_only_df)
+
+if completed_count > 0:
+    with st.container(border=True):
+        st.markdown("### 已完成分类占比")
+        
+        # 计算分类数量
+        completed_cat_counts = completed_only_df["category"].value_counts()
+        
+        # 用 HTML 渲染横向进度条
+        for cat, count in completed_cat_counts.items():
+            percentage = (count / completed_count) * 100
+            st.markdown(f"""
+            <div style='margin-bottom: 1rem;'>
+                <div style='display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px;'>
+                    <span style='font-weight: 500; color: #334155;'>{cat}</span>
+                    <span style='color: #64748B;'>{count} 项</span>
+                </div>
+                <div style='width: 100%; background-color: #F1F5F9; border-radius: 999px; height: 8px;'>
+                    <!-- 这里使用绿色表示已完成 -->
+                    <div style='width: {percentage}%; background-color: #10B981; border-radius: 999px; height: 8px;'></div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
 # ========== 4. 已完成任务列表 (表格) ==========
 with st.container(border=True):
     st.markdown("### 已完成任务记录")
