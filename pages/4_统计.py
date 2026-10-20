@@ -175,8 +175,6 @@ with st.container(border=True):
 
 st.write("")
 
-st.write("")
-
 # ========== 已完成分类占比 ==========
 completed_only_df = df[df["status"] == "completed"]
 completed_count = len(completed_only_df)
@@ -203,6 +201,8 @@ if completed_count > 0:
                 </div>
             </div>
             """, unsafe_allow_html=True)
+
+st.write("")
 
 # ========== 4. 已完成任务列表 (表格) ==========
 with st.container(border=True):
