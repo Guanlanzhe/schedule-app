@@ -118,7 +118,18 @@ def require_login():
     from src.supabase_client import restore_session
     restore_session()
     if "user" not in st.session_state:
-        st.warning("请先登录")
+        # 自定义提示框，比原生的 st.warning 更美观
+        st.markdown("""
+        <div style='background-color: #FEF2F2; border: 1px solid #FCA5A5; color: #991B1B; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;'>
+            🔒 您还未登录，请先登录以查看此页面。
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # 居中放置登录按钮
+        _, c, _ = st.columns([1, 2, 1])
+        with c:
+            if st.button("🔑 去登录", type="primary", use_container_width=True):
+                st.switch_page("app.py") # 确保你的主文件叫 app.py，如果叫主页.py 请改成 "主页.py"
         st.stop()
     return st.session_state["user"]
 
