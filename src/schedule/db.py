@@ -3,7 +3,7 @@ from src.supabase_client import get_supabase
 from src.schedule.tags import fetch_schedule_tags, fetch_tags
 
 def _attach_tags(user_id: str, schedules: list) -> list:
-    """给每条日程附上 tag_ids 和 tag_names（增加了解析缓存）"""
+    """给每条日程附上 tag_ids 和 tag_names"""
     mapping = fetch_schedule_tags(user_id)
     all_tags = {t["id"]: t["name"] for t in fetch_tags(user_id)}
     for s in schedules:
@@ -17,7 +17,8 @@ def fetch_all(user_id: str):
     """拉取全部数据，缓存 60 秒"""
     data = (
         get_supabase().table("schedules")
-        .select("*").eq("user_id", user_id)
+        .select("*")
+        .eq("user_id", user_id)  # <--- 核心过滤：必须是当前用户的 ID
         .order("deadline_date").execute().data
     )
     return _attach_tags(user_id, data)
@@ -27,7 +28,8 @@ def fetch_pending(user_id: str):
     """拉取待完成数据，缓存 60 秒"""
     data = (
         get_supabase().table("schedules")
-        .select("*").eq("user_id", user_id)
+        .select("*")
+        .eq("user_id", user_id)  # <--- 核心过滤：必须是当前用户的 ID
         .in_("status", ["pending", "overdue"])
         .order("deadline_date").execute().data
     )
@@ -46,7 +48,10 @@ def insert(user_id: str, data: dict, tag_ids: list[int] = None):
 def update(sid: int, user_id: str, updates: dict, tag_ids: list[int] = None):
     resp = (
         get_supabase().table("schedules")
-        .update(updates).eq("id", sid).eq("user_id", user_id).execute()
+        .update(updates)
+        .eq("id", sid)
+        .eq("user_id", user_id)  # <--- 核心过滤：只能改自己的
+        .execute()
     )
     if tag_ids is not None:
         from src.schedule.tags import set_schedule_tags
@@ -57,7 +62,10 @@ def update(sid: int, user_id: str, updates: dict, tag_ids: list[int] = None):
 def delete(sid: int, user_id: str):
     resp = (
         get_supabase().table("schedules")
-        .delete().eq("id", sid).eq("user_id", user_id).execute()
+        .delete()
+        .eq("id", sid)
+        .eq("user_id", user_id)  # <--- 核心过滤：只能删自己的
+        .execute()
     )
     st.cache_data.clear()  # 删除后清空缓存
     return resp
