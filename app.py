@@ -87,3 +87,20 @@ with col2:
 </h3>
 {build_list_html(stage_items, "暂无阶段安排")}
 </div>""", unsafe_allow_html=True)
+
+st.write("")
+st.divider()
+
+st.markdown("### 🚀 快捷导航")
+# 使用 5 列并排展示链接，如果不需要图标可以去掉 icon 参数
+c1, c2, c3, c4, c5 = st.columns(5)
+with c1:
+    st.page_link("pages/1_日历.py", label="日程日历", icon="📅")
+with c2:
+    st.page_link("pages/2_待完成.py", label="待办事项", icon="📋")
+with c3:
+    st.page_link("pages/3_新建.py", label="新建任务", icon="➕")
+with c4:
+    st.page_link("pages/4_统计.py", label="数据统计", icon="📊")
+with c5:
+    st.page_link("pages/5_设置.py", label="标签设置", icon="⚙️")
