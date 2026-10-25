@@ -92,6 +92,7 @@ st.write("")
 st.divider()
 
 st.markdown("### 🚀 快捷导航")
+st.write("")
 # 使用 5 列并排展示链接，如果不需要图标可以去掉 icon 参数
 c1, c2, c3, c4, c5 = st.columns(5)
 with c1:
