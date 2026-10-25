@@ -80,3 +80,15 @@ with center_col:
                 st.session_state["form_key"] += 1
                 st.success("已成功创建！")
                 st.rerun()
+
+# ====== 底部：回到主页 ======
+st.write("")
+st.write("")
+st.divider()
+
+# 限制按钮宽度，看起来更精致，不会占满全屏
+_, btn_col, _ = st.columns([1, 2, 1])
+with btn_col:
+    # type="primary" 会让按钮变成我们之前设置的高级蓝色
+    if st.button("🏠 回到主页", use_container_width=True, type="primary"):
+        st.switch_page("app.py")
