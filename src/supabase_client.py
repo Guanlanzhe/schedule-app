@@ -40,6 +40,9 @@ def login(email: str, password: str):
         expires = datetime.now() + timedelta(days=COOKIE_DAYS)
         cookie.set(COOKIE_NAME, resp.session.refresh_token, expires=expires)
 
+        # 每次登录时，清空上一个账号可能残留的数据缓存
+        st.cache_data.clear()
+
         return resp.user
     except Exception as e:
         st.error(f"登录失败：{e}")
@@ -73,3 +76,6 @@ def logout():
     cookie.remove(COOKIE_NAME)
     for key in ["user", "access_token"]:
         st.session_state.pop(key, None)
+        
+    # 【关键】退出登录时，必须清空数据缓存，防止下一个登录的人看到历史画面
+    st.cache_data.clear()
