@@ -105,3 +105,15 @@ with c4:
     st.page_link("pages/4_统计.py", label="数据统计", icon="📊")
 with c5:
     st.page_link("pages/5_设置.py", label="标签设置", icon="⚙️")
+
+# ====== 底部：退出登录 ======
+st.write("")
+st.write("")
+st.divider()
+
+# 居中放置退出按钮，限制宽度
+_, btn_col, _ = st.columns([2, 1, 2])
+with btn_col:
+    if st.button("🚪 退出登录", use_container_width=True):
+        logout()
+        st.rerun()
