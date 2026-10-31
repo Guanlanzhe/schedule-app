@@ -27,6 +27,15 @@ st.markdown("""
         gap: 15px;
         margin-bottom: 1rem;
     }
+    
+    /* 强制并排的列内部拉伸且等高 */
+    div[data-testid="stHorizontalBlock"] {
+        align-items: stretch !important;
+    }
+    /* 让列内的容器（也就是卡片）撑满整列高度 */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        height: 100% !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
