@@ -15,6 +15,15 @@ st.markdown("""
     div[data-testid="stDataFrame"] div[role="columnheader"] {
         justify-content: center !important;
     }
+    /* 自定义指标卡内边距 */
+    .metric-card {
+        background-color: #FFFFFF; 
+        border: 1px solid #E2E8F0; 
+        border-radius: 12px; 
+        padding: 1.5rem; 
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        height: 100%;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -60,38 +69,46 @@ if not data:
 df = pd.DataFrame(data)
 df["deadline_date"] = pd.to_datetime(df["deadline_date"])
 
-# ========== 2. 未完成统计 (卡片化) ==========
+# ========== 2. 未完成与已完成概览 ==========
 pending = df[df["status"].isin(["pending", "overdue"])]
+completed_only_df = df[df["status"] == "completed"]
 pending_count = len(pending)
+completed_count = len(completed_only_df)
 
-st.markdown(f"""
-<div style='background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>
-    <div style='color: #64748B; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem;'>当前未完成总数</div>
-    <div style='color: #2563EB; font-size: 2.5rem; font-weight: 700; line-height: 1;'>{pending_count}</div>
-</div>
-""", unsafe_allow_html=True)
+# 使用左右 1:2 的分栏布局
+col_sum, col_chart = st.columns([1, 2])
 
-if not pending.empty:
-    with st.container(border=True):
-        st.markdown("### 未完成分类占比")
-        
-        # 计算分类数量
-        cat_counts = pending["category"].value_counts()
-        
-        # 用 HTML 渲染横向进度条
-        for cat, count in cat_counts.items():
-            percentage = (count / pending_count) * 100
-            st.markdown(f"""
-            <div style='margin-bottom: 1rem;'>
-                <div style='display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px;'>
-                    <span style='font-weight: 500; color: #334155;'>{cat}</span>
-                    <span style='color: #64748B;'>{count} 项</span>
+with col_sum:
+    # 漂亮的指标数字卡片
+    st.markdown(f"""
+    <div class="metric-card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 180px;">
+        <div style='color: #64748B; font-size: 1rem; font-weight: 500; margin-bottom: 0.5rem;'>当前未完成总数</div>
+        <div style='color: #2563EB; font-size: 4rem; font-weight: 700; line-height: 1;'>{pending_count}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_chart:
+    # 将未完成分类占比放在右侧的卡片里
+    if pending_count > 0:
+        with st.container(border=True):
+            st.markdown("### 未完成分类占比")
+            cat_counts = pending["category"].value_counts()
+            
+            for cat, count in cat_counts.items():
+                percentage = (count / pending_count) * 100
+                st.markdown(f"""
+                <div style='margin-bottom: 1rem;'>
+                    <div style='display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px;'>
+                        <span style='font-weight: 500; color: #334155;'>{cat}</span>
+                        <span style='color: #64748B; font-weight: 600;'>{count} 项 ({percentage:.1f}%)</span>
+                    </div>
+                    <div style='width: 100%; background-color: #F1F5F9; border-radius: 999px; height: 8px;'>
+                        <div style='width: {percentage}%; background-color: #3B82F6; border-radius: 999px; height: 8px;'></div>
+                    </div>
                 </div>
-                <div style='width: 100%; background-color: #F1F5F9; border-radius: 999px; height: 8px;'>
-                    <div style='width: {percentage}%; background-color: #3B82F6; border-radius: 999px; height: 8px;'></div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+    else:
+        st.info("暂无未完成数据")
 
 st.write("")
 
@@ -175,36 +192,44 @@ with st.container(border=True):
 
 st.write("")
 
-# ========== 已完成分类占比 ==========
-completed_only_df = df[df["status"] == "completed"]
-completed_count = len(completed_only_df)
+# ========== 4. 已完成统计 ==========
+col_comp1, col_comp2 = st.columns([1, 2])
 
-if completed_count > 0:
-    with st.container(border=True):
-        st.markdown("### 已完成分类占比")
-        
-        # 计算分类数量
-        completed_cat_counts = completed_only_df["category"].value_counts()
-        
-        # 用 HTML 渲染横向进度条
-        for cat, count in completed_cat_counts.items():
-            percentage = (count / completed_count) * 100
-            st.markdown(f"""
-            <div style='margin-bottom: 1rem;'>
-                <div style='display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px;'>
-                    <span style='font-weight: 500; color: #334155;'>{cat}</span>
-                    <span style='color: #64748B;'>{count} 项</span>
+with col_comp1:
+    # 已完成总数卡片
+    st.markdown(f"""
+    <div class="metric-card" style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 180px;">
+        <div style='color: #64748B; font-size: 1rem; font-weight: 500; margin-bottom: 0.5rem;'>累计已完成总数</div>
+        <div style='color: #10B981; font-size: 4rem; font-weight: 700; line-height: 1;'>{completed_count}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_comp2:
+    # 已完成分类占比
+    if completed_count > 0:
+        with st.container(border=True):
+            st.markdown("### 已完成分类占比")
+            completed_cat_counts = completed_only_df["category"].value_counts()
+            
+            for cat, count in completed_cat_counts.items():
+                percentage = (count / completed_count) * 100
+                st.markdown(f"""
+                <div style='margin-bottom: 1rem;'>
+                    <div style='display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px;'>
+                        <span style='font-weight: 500; color: #334155;'>{cat}</span>
+                        <span style='color: #64748B; font-weight: 600;'>{count} 项 ({percentage:.1f}%)</span>
+                    </div>
+                    <div style='width: 100%; background-color: #F1F5F9; border-radius: 999px; height: 8px;'>
+                        <div style='width: {percentage}%; background-color: #10B981; border-radius: 999px; height: 8px;'></div>
+                    </div>
                 </div>
-                <div style='width: 100%; background-color: #F1F5F9; border-radius: 999px; height: 8px;'>
-                    <!-- 这里使用绿色表示已完成 -->
-                    <div style='width: {percentage}%; background-color: #10B981; border-radius: 999px; height: 8px;'></div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+    else:
+        st.info("暂无已完成数据")
 
 st.write("")
 
-# ========== 4. 已完成任务列表 (表格) ==========
+# ========== 5. 已完成任务列表 (表格) ==========
 with st.container(border=True):
     st.markdown("### 已完成任务记录")
     
