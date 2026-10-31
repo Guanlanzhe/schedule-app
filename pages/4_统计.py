@@ -2,8 +2,9 @@ import pandas as pd
 import streamlit as st
 import altair as alt
 from src.ui import load_style, require_login
-from src.schedule.db import fetch_all
+from src.schedule.db import fetch_all, update  # 补充导入 update
 from src.schedule.tags import fetch_tags
+from src.schedule.categories import fetch_categories  # 补充导入 fetch_categories
 
 load_style()
 user = require_login()
@@ -11,7 +12,6 @@ user = require_login()
 # ========== 注入 CSS：强制表格表头居中 ==========
 st.markdown("""
 <style>
-    /* 强制 dataframe 表头文字居中 */
     div[data-testid="stDataFrame"] div[role="columnheader"] {
         justify-content: center !important;
     }
@@ -75,10 +75,8 @@ if not pending.empty:
     with st.container(border=True):
         st.markdown("### 未完成分类占比")
         
-        # 计算分类数量
         cat_counts = pending["category"].value_counts()
         
-        # 用 HTML 渲染横向进度条
         for cat, count in cat_counts.items():
             percentage = (count / pending_count) * 100
             st.markdown(f"""
@@ -121,7 +119,6 @@ with st.container(border=True):
             完成数量=("status", lambda x: (x == "completed").sum())
         ).reset_index()
 
-        # 横轴标签格式化
         if freq == "按日":
             grouped["日期"] = grouped["deadline_date"].dt.strftime("%m-%d")
         elif freq == "按周":
@@ -138,7 +135,6 @@ with st.container(border=True):
             value_name="数量"
         )
 
-        # 高级图表配置
         chart = alt.Chart(melted).mark_bar(
             cornerRadiusTopLeft=4, 
             cornerRadiusTopRight=4
@@ -183,10 +179,8 @@ if completed_count > 0:
     with st.container(border=True):
         st.markdown("### 已完成分类占比")
         
-        # 计算分类数量
         completed_cat_counts = completed_only_df["category"].value_counts()
         
-        # 用 HTML 渲染横向进度条
         for cat, count in completed_cat_counts.items():
             percentage = (count / completed_count) * 100
             st.markdown(f"""
@@ -196,7 +190,6 @@ if completed_count > 0:
                     <span style='color: #64748B;'>{count} 项</span>
                 </div>
                 <div style='width: 100%; background-color: #F1F5F9; border-radius: 999px; height: 8px;'>
-                    <!-- 这里使用绿色表示已完成 -->
                     <div style='width: {percentage}%; background-color: #10B981; border-radius: 999px; height: 8px;'></div>
                 </div>
             </div>
@@ -246,7 +239,6 @@ with st.container(border=True):
             display_df.columns = ["截止日期", "类别", "学科", "备注", "开始准备日期"]
             display_df = display_df.sort_values("截止日期", ascending=False)
 
-            # 注意：下面的 HTML 所有标签全部顶格，绝对不能有缩进
             html_table = """<div style='overflow-x: auto;'>
 <table style='width: 100%; border-collapse: collapse; text-align: center; font-size: 0.9rem; color: #334155;'>
 <thead>
@@ -260,7 +252,6 @@ with st.container(border=True):
 </thead>
 <tbody>"""
             
-            # 使用 enumerate 生成准确的行号用于隔行变色
             for i, (_, row) in enumerate(display_df.iterrows()):
                 bg_color = "#FFFFFF" if i % 2 == 0 else "#F8FAFC"
                 html_table += f"""<tr style='background-color: {bg_color}; border-bottom: 1px solid #E2E8F0;'>
@@ -278,14 +269,47 @@ with st.container(border=True):
             st.markdown(html_table, unsafe_allow_html=True)
             st.caption(f"共 {len(display_df)} 条记录")
 
+st.write("")
+st.markdown("#### 🛠️ 修改已完成任务的类别")
+
+# 用字典把 "截止日期 | 备注" 映射到真实的 id 上
+task_options = {}
+for _, row in completed_df.iterrows():
+    label = f"{row['deadline_date']} | {row['category']} | {row['note'] or '无备注'}"
+    # 强制转为 int 防止 Supabase 更新报错
+    task_options[label] = int(row['id']) 
+
+if not task_options:
+    st.caption("暂无可修改的任务")
+else:
+    with st.form("update_completed_category"):
+        c1, c2, c3 = st.columns([3, 3, 1])
+        
+        selected_label = c1.selectbox("选择任务", options=list(task_options.keys()), label_visibility="collapsed")
+        
+        selected_id = task_options[selected_label]
+        current_task = completed_df[completed_df["id"] == selected_id].iloc[0]
+        
+        all_cats = fetch_categories(user.id)
+        cat_names = [cat["name"] for cat in all_cats]
+        
+        current_idx = cat_names.index(current_task["category"]) if current_task["category"] in cat_names else 0
+        
+        new_cat = c2.selectbox("更改为新类别", options=cat_names, index=current_idx, label_visibility="collapsed")
+        
+        submitted = c3.form_submit_button("保存修改", use_container_width=True)
+        
+        if submitted:
+            update(selected_id, user.id, {"category": new_cat})
+            st.toast(f"✅ 已将任务类别修改为「{new_cat}」")
+            st.rerun()
+
 # ====== 底部：回到主页 ======
 st.write("")
 st.write("")
 st.divider()
 
-# 限制按钮宽度，看起来更精致，不会占满全屏
 _, btn_col, _ = st.columns([1, 2, 1])
 with btn_col:
-    # type="primary" 会让按钮变成我们之前设置的高级蓝色
     if st.button("🏠 回到主页", use_container_width=True, type="primary"):
         st.switch_page("app.py")
