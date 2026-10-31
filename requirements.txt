@@ -1,5 +1,5 @@
 streamlit
-supabase
+supabase==2.22.0
 streamlit-calendar
 pandas
 streamlit-cookies-controller
