@@ -278,47 +278,6 @@ with st.container(border=True):
             st.markdown(html_table, unsafe_allow_html=True)
             st.caption(f"共 {len(display_df)} 条记录")
 
-st.write("")
-st.markdown("#### 🛠️ 修改已完成任务的类别")
-
-# 用字典把 "截止日期 | 备注" 映射到真实的 id 上，方便用户选择
-task_options = {}
-for _, row in completed_df.iterrows():
-    # 构建一个易读的选项名称
-    label = f"{row['deadline_date']} | {row['category']} | {row['note'] or '无备注'}"
-    task_options[label] = row['id']
-
-if not task_options:
-    st.caption("暂无可修改的任务")
-else:
-    with st.form("update_completed_category"):
-        c1, c2, c3 = st.columns([3, 3, 1])
-        
-        # 选择要修改的任务
-        selected_label = c1.selectbox("选择任务", options=list(task_options.keys()), label_visibility="collapsed")
-        
-        # 找到这个任务当前的类别，设为下拉框的默认值
-        selected_id = task_options[selected_label]
-        current_task = completed_df[completed_df["id"] == selected_id].iloc[0]
-        
-        # 获取所有分类选项
-        all_cats = fetch_categories(user.id)
-        cat_names = [cat["name"] for cat in all_cats]
-        
-        # 如果当前类别不在列表里（比如已经被删除了），就默认为第一个
-        current_idx = cat_names.index(current_task["category"]) if current_task["category"] in cat_names else 0
-        
-        new_cat = c2.selectbox("更改为新类别", options=cat_names, index=current_idx, label_visibility="collapsed")
-        
-        submitted = c3.form_submit_button("保存修改", use_container_width=True)
-        
-        if submitted:
-            from src.schedule.db import update
-            # 更新类别
-            update(selected_id, user.id, {"category": new_cat})
-            st.success(f"已将任务类别修改为「{new_cat}」")
-            st.rerun()
-
 # ====== 底部：回到主页 ======
 st.write("")
 st.write("")
