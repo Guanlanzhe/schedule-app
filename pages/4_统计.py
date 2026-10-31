@@ -27,14 +27,29 @@ st.markdown("""
         gap: 15px;
         margin-bottom: 1rem;
     }
-    
-    /* 强制并排的列内部拉伸且等高 */
-    div[data-testid="stHorizontalBlock"] {
-        align-items: stretch !important;
+    /* 自定义左右等高的 Flex 布局 */
+    .custom-flex-row {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: stretch;
     }
-    /* 让列内的容器（也就是卡片）撑满整列高度 */
-    div[data-testid="stVerticalBlockBorderWrapper"] {
-        height: 100% !important;
+    .custom-flex-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .custom-flex-col h3 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        color: #334155;
+        padding-bottom: 0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -183,51 +198,60 @@ with st.container(border=True):
 
 st.write("")
 
-# ========== 4. 分类占比 (并排排版，避免拉长) ==========
-col_pending, col_completed = st.columns(2)
+# ========== 4. 分类占比 (使用自定义 Flex 布局强制左右等高) ==========
+# 组装左边的 HTML
+left_html = "<div style='margin-bottom: 0.8rem;'><h3>未完成分类占比</h3>"
+if pending_count > 0:
+    cat_counts = pending["category"].value_counts()
+    for cat, count in cat_counts.items():
+        percentage = (count / pending_count) * 100
+        left_html += f"""
+        <div style='margin-bottom: 0.8rem;'>
+            <div style='display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;'>
+                <span style='font-weight: 600; color: #334155;'>{cat}</span>
+                <span style='color: #64748B;'>{count}项 ({percentage:.1f}%)</span>
+            </div>
+            <div style='width: 100%; background-color: #F1F5F9; border-radius: 4px; height: 6px;'>
+                <div style='width: {percentage}%; background-color: #3B82F6; border-radius: 4px; height: 6px;'></div>
+            </div>
+        </div>
+        """
+else:
+    left_html += "<div style='color: #94A3B8; font-size: 0.9rem;'>暂无未完成数据</div>"
+left_html += "</div>"
 
-with col_pending:
-    with st.container(border=True):
-        st.markdown("### 未完成分类占比")
-        if pending_count > 0:
-            cat_counts = pending["category"].value_counts()
-            for cat, count in cat_counts.items():
-                percentage = (count / pending_count) * 100
-                # 缩进进度条，紧凑排版
-                st.markdown(f"""
-                <div style='margin-bottom: 0.8rem;'>
-                    <div style='display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;'>
-                        <span style='font-weight: 600; color: #334155;'>{cat}</span>
-                        <span style='color: #64748B;'>{count}项 ({percentage:.1f}%)</span>
-                    </div>
-                    <div style='width: 100%; background-color: #F1F5F9; border-radius: 4px; height: 6px;'>
-                        <div style='width: {percentage}%; background-color: #3B82F6; border-radius: 4px; height: 6px;'></div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.caption("暂无未完成数据")
+# 组装右边的 HTML
+right_html = "<div style='margin-bottom: 0.8rem;'><h3>已完成分类占比</h3>"
+if completed_count > 0:
+    completed_cat_counts = completed_only_df["category"].value_counts()
+    for cat, count in completed_cat_counts.items():
+        percentage = (count / completed_count) * 100
+        right_html += f"""
+        <div style='margin-bottom: 0.8rem;'>
+            <div style='display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;'>
+                <span style='font-weight: 600; color: #334155;'>{cat}</span>
+                <span style='color: #64748B;'>{count}项 ({percentage:.1f}%)</span>
+            </div>
+            <div style='width: 100%; background-color: #F1F5F9; border-radius: 4px; height: 6px;'>
+                <div style='width: {percentage}%; background-color: #10B981; border-radius: 4px; height: 6px;'></div>
+            </div>
+        </div>
+        """
+else:
+    right_html += "<div style='color: #94A3B8; font-size: 0.9rem;'>暂无已完成数据</div>"
+right_html += "</div>"
 
-with col_completed:
-    with st.container(border=True):
-        st.markdown("### 已完成分类占比")
-        if completed_count > 0:
-            completed_cat_counts = completed_only_df["category"].value_counts()
-            for cat, count in completed_cat_counts.items():
-                percentage = (count / completed_count) * 100
-                st.markdown(f"""
-                <div style='margin-bottom: 0.8rem;'>
-                    <div style='display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;'>
-                        <span style='font-weight: 600; color: #334155;'>{cat}</span>
-                        <span style='color: #64748B;'>{count}项 ({percentage:.1f}%)</span>
-                    </div>
-                    <div style='width: 100%; background-color: #F1F5F9; border-radius: 4px; height: 6px;'>
-                        <div style='width: {percentage}%; background-color: #10B981; border-radius: 4px; height: 6px;'></div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.caption("暂无已完成数据")
+# 渲染整个左右等高的容器
+st.markdown(f"""
+<div class="custom-flex-row">
+    <div class="custom-flex-col">
+        {left_html}
+    </div>
+    <div class="custom-flex-col">
+        {right_html}
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 st.write("")
 
