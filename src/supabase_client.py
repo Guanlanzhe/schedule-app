@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta
 import streamlit as st
-import httpx
 from supabase import create_client
-from supabase.lib.client_options import ClientOptions
 from streamlit_cookies_controller import CookieController
 
 cookie = CookieController(key="schedule_cookies")
@@ -12,20 +10,9 @@ COOKIE_DAYS = 30
 
 @st.cache_resource
 def get_supabase():
-    # 1. 创建自定义的 httpx 客户端，强制使用 HTTP/1.1
-    custom_httpx_client = httpx.Client(
-        http2=False,  # 关键：关闭 HTTP/2，避免 Streamlit Cloud 上的连接断开问题
-        timeout=httpx.Timeout(30.0, connect=10.0),
-        limits=httpx.Limits(max_keepalive_connections=10, max_connections=40)
-    )
-    
-    # 2. 将客户端传递给 Supabase
-    options = ClientOptions(httpx_client=custom_httpx_client)
-    
     return create_client(
         st.secrets["SUPABASE_URL"],
-        st.secrets["SUPABASE_KEY"],
-        options=options
+        st.secrets["SUPABASE_KEY"]
     )
 
 
